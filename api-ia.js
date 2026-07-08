@@ -1,13 +1,7 @@
-// gemini-api.js - Classificação real via NVIDIA NIM API (Padrão OpenAI) com correção de CORS
-
-const NVIDIA_API_KEY = "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";
-const NVIDIA_MODEL = "abacusai/dracarys-llama-3.1-70b-instruct";
-
-// O corsproxy.io resolve o bloqueio de CORS que acontece direto no servidor do Netlify
-const NVIDIA_ENDPOINT = "https://corsproxy.io/?url=" + encodeURIComponent("https://integrate.api.nvidia.com/v1/chat/completions");
+// api-ia.js - Classificação via função serverless do Netlify (sem chave exposta, sem proxy externo)
 
 function relatarErroNaIA(contexto, erro) {
-    console.error(`[NVIDIA] Erro em ${contexto}:`, erro);
+    console.error(`[IA] Erro em ${contexto}:`, erro);
     alert(`[ERRO NA IA]\nFalha em: ${contexto}\nDetalhes: ${erro}`);
 }
 
@@ -36,7 +30,7 @@ Responda APENAS com um array JSON válido, sem blocos de código markdown (como 
 
 async function classificarNoticiasPendentes() {
     try {
-        console.log("Buscando notícias pendentes para classificação na Nvidia...");
+        console.log("Buscando notícias pendentes para classificação...");
 
         const todasNoticias = await obterTodasNoticias();
         const pendentes = todasNoticias.filter(n => n.categoria === 'PENDENTE');
@@ -48,20 +42,10 @@ async function classificarNoticiasPendentes() {
 
         const prompt = montarPrompt(pendentes);
 
-        // Disparo estruturado usando a URL com Proxy para o ambiente do Netlify
-        const resposta = await fetch(NVIDIA_ENDPOINT, {
+        const resposta = await fetch("/.netlify/functions/classificar-noticias", {
             method: "POST",
-            headers: { 
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${NVIDIA_API_KEY}`
-            },
-            body: JSON.stringify({
-                model: NVIDIA_MODEL,
-                messages: [
-                    { role: "user", content: prompt }
-                ],
-                temperature: 0.2
-            })
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt })
         });
 
         if (!resposta.ok) {
@@ -70,16 +54,13 @@ async function classificarNoticiasPendentes() {
         }
 
         const data = await resposta.json();
-        
         let textoResposta = data.choices?.[0]?.message?.content;
 
         if (!textoResposta) {
-            throw new Error("A IA da Nvidia não retornou conteúdo classificável.");
+            throw new Error("A IA não retornou conteúdo classificável.");
         }
 
-        // Limpeza de segurança para garantir a conversão do JSON
         textoResposta = textoResposta.replace(/```json/g, "").replace(/```/g, "").trim();
-
         const classificacoes = JSON.parse(textoResposta);
 
         for (const item of classificacoes) {
@@ -92,7 +73,7 @@ async function classificarNoticiasPendentes() {
             await salvarNoticia(noticia);
         }
 
-        console.log(`[SUCESSO] ${classificacoes.length} notícias classificadas pela Nvidia.`);
+        console.log(`[SUCESSO] ${classificacoes.length} notícias classificadas.`);
 
     } catch (error) {
         relatarErroNaIA("classificarNoticiasPendentes", error.message);
