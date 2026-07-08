@@ -4,7 +4,7 @@ const NVIDIA_API_KEY = "nvapi-PEQbXcZNg1XquLx0sFBY0F00PxZc94lm5NbgDzrzLx4sBWqWx6
 const NVIDIA_MODEL = "abacusai/dracarys-llama-3.1-70b-instruct";
 
 // O corsproxy.io resolve o bloqueio de CORS que acontece direto no servidor do Netlify
-const NVIDIA_ENDPOINT = "https://corsproxy.io/?" + encodeURIComponent("https://integrate.api.nvidia.com/v1/chat/completions");
+const NVIDIA_ENDPOINT = "https://corsproxy.io/?url=" + encodeURIComponent("https://integrate.api.nvidia.com/v1/chat/completions");
 
 function relatarErroNaIA(contexto, erro) {
     console.error(`[NVIDIA] Erro em ${contexto}:`, erro);
