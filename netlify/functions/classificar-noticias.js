@@ -16,7 +16,7 @@ exports.handler = async function (event) {
                 "Authorization": `Bearer ${process.env.NVIDIA_API_KEY}`
             },
             body: JSON.stringify({
-                model: "abacusai/dracarys-llama-3.1-70b-instruct",
+                model: "meta/llama-3.1-8b-instruct",
                 messages: [{ role: "user", content: prompt }],
                 temperature: 0.2
             })
