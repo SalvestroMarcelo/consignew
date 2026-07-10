@@ -1,7 +1,7 @@
 // rss-reader.js - Versão via fetch (funciona hospedado em https, inclusive PWA)
 
 const RSS_URL = 'https://news.google.com/rss/search?q=%22empr%C3%A9stimo+consignado%22+OR+%22reajuste+salarial%22+OR+%22Reajuste+salarial+servidores%22+OR+%22margem+consign%C3%A1vel%22&hl=pt-BR&gl=BR&ceid=BR:pt-419';
-const RSS2JSON_API_KEY = 'sy8wuuxyj98jlal7qmkot1oop9j6mwrtivwcshx6'; // troque pela chave copiada do painel do rss2json.com
+const RSS2JSON_API_KEY = '7z7tg0enqpufvp94s3qvhsbsznctjpqswlnegfej'; // troque pela chave copiada do painel do rss2json.com
 
 async function atualizarNoticiasDoRSS() {
     console.log("Buscando atualizações via rss2json...");
