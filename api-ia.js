@@ -47,7 +47,7 @@ async function classificarNoticiasPendentes() {
             const lote = pendentes.slice(i, i + TAMANHO_LOTE);
             const prompt = montarPrompt(lote);
 
-            const resposta = await fetch("/.netlify/functions/classificar-noticias", {
+            const resposta = await fetch("/api/classificar-noticias", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ prompt })
