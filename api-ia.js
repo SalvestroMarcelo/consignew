@@ -9,25 +9,39 @@ function montarPrompt(noticias) {
     const listaFormatada = noticias.map((n, i) =>
         `${i}) URL: ${n.url}\nTítulo: ${n.titulo}\nResumo: ${n.snippet || "(sem resumo disponível)"}`
     ).join("\n\n");
+    return `Você é um analista especializado em crédito consignado no Brasil, focado especificamente em servidores públicos concursados/efetivos (âmbito municipal, estadual ou federal) como público-alvo do produto.
 
-    return `Você é um analista especializado em crédito consignado no Brasil. Classifique cada notícia abaixo em uma das três categorias, seguindo estritamente estes critérios:
+ANTES DE CLASSIFICAR, identifique:
+1. O TIPO DE VÍNCULO da categoria profissional mencionada:
+   - Servidor público concursado/efetivo (prefeitura, câmara, governo estadual/federal, autarquia, universidade pública, etc.) → RELEVANTE
+   - Trabalhador celetista de empresa privada, mesmo que negocie via sindicato, TRT, audiência de conciliação ou esteja em greve (ex: rodoviários de empresas de ônibus) → NÃO RELEVANTE, mesmo que a notícia fale em "reajuste salarial"
 
-VIAVEL: notícias que indicam aumento de margem consignável, liberação de novos cartões, aumentos salariais reais de servidores públicos (municipais, estaduais ou federais), novos convênios de consignado abertos, ou decisões judiciais/governamentais que facilitam ou expandem o crédito.
+2. A ABRANGÊNCIA do benefício/notícia:
+   - Amplo, aplicável de forma geral ao público-alvo → considere o impacto pleno
+   - Regional, condicional, ou dependente de múltiplas variáveis (estado específico, banco específico, elegibilidade restrita) → trate como incerto/parcial, não pleno
 
-DUVIDOSA: notícias sobre cortes parciais, suspensões temporárias de bancos que não afetam o mercado como um todo, greves gerais em andamento que possam travar o setor temporariamente, ou promessas políticas futuras sem datas definidas e sem aprovação oficial.
+Classifique cada notícia em uma das três categorias, seguindo estritamente estes critérios:
 
-INVIAVEL: notícias sobre redução do teto de juros (que afasta os bancos e trava as operações), suspensão definitiva de linhas de crédito, fraudes/golpes descobertas no setor, ou reajustes de categorias que não possuem margem consignável em folha.
+VIAVEL: notícias que indicam aumento de margem consignável, liberação de novos cartões, aumentos salariais REAIS e APROVADOS (não apenas propostos) de servidores públicos concursados (municipais, estaduais ou federais), novos convênios de consignado abertos que sejam amplos e diretamente aplicáveis ao público-alvo geral, ou decisões judiciais/governamentais que facilitam ou expandem o crédito de forma abrangente.
 
-Para cada notícia, atribua também uma relevância de 0 a 100, indicando o quanto ela realmente impacta o mercado de consignado (100 = altíssimo impacto, 0 = irrelevante).
+DUVIDOSA: notícias sobre benefícios ou convênios regionais/condicionais que dependem de variáveis específicas (estado, banco, elegibilidade restrita) e não representam ganho direto e geral, cortes parciais, suspensões temporárias de bancos que não afetam o mercado como um todo, greves gerais em andamento que possam travar o setor temporariamente (desde que envolvam o público-alvo de servidores concursados), ou promessas políticas futuras sem datas definidas e sem aprovação oficial.
+
+INVIAVEL: notícias sobre negociações, reajustes, greves ou disputas salariais de trabalhadores CELETISTAS de empresas privadas (ainda que mediadas por TRT, sindicato ou em audiência de conciliação) — pois não afetam o público-alvo de servidores concursados, redução do teto de juros (que afasta os bancos e trava as operações), suspensão definitiva de linhas de crédito, fraudes/golpes descobertas no setor, ou reajustes de categorias que não possuem margem consignável em folha.
+
+EXEMPLOS DE REFERÊNCIA:
+1. "Rodoviários e empresas de ônibus do Rio retomam negociação por reajuste salarial em audiência no TRT-RJ" → INVIAVEL (trabalhadores celetistas de empresa privada, não servidores concursados)
+2. "Banrisul oferece carência de até seis meses no empréstimo consignado estadual" → DUVIDOSA (benefício regional/condicional, não aplicável de forma geral)
+3. "Reajuste salarial de 3,92% para servidores da USP é aprovado pelo Conselho Universitário" → VIAVEL (servidor público, aprovação oficial e efetiva)
+4. "Após pressão, governo sinaliza recursos para reajuste salarial em 2027" → DUVIDOSA (promessa futura, sem aprovação oficial ainda)
+
+Para cada notícia, atribua também uma relevância de 0 a 100, indicando o quanto ela realmente impacta o mercado de consignado para servidores públicos concursados (100 = altíssimo impacto, 0 = irrelevante).
 
 Notícias para classificar:
-
 ${listaFormatada}
 
 Responda APENAS com um array JSON válido, sem blocos de código markdown (como \`\`\`json), sem textos introdutórios e sem explicações, seguindo este formato exato:
 [{"url": "...", "categoria": "VIAVEL|DUVIDOSA|INVIAVEL", "relevancia": 0}]`;
 }
-
 async function classificarNoticiasPendentes() {
     try {
         console.log("Buscando notícias pendentes para classificação...");
