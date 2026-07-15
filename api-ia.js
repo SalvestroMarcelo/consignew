@@ -66,7 +66,22 @@ async function classificarNoticiasPendentes() {
             }
 
             textoResposta = textoResposta.replace(/```json/g, "").replace(/```/g, "").trim();
-            const classificacoes = JSON.parse(textoResposta);
+
+// Extrai só o trecho entre o primeiro [ e o último ] — protege contra texto extra
+// que o modelo às vezes adiciona antes/depois do JSON
+const inicioArray = textoResposta.indexOf("[");
+const fimArray = textoResposta.lastIndexOf("]");
+if (inicioArray !== -1 && fimArray !== -1) {
+    textoResposta = textoResposta.substring(inicioArray, fimArray + 1);
+}
+
+let classificacoes;
+try {
+    classificacoes = JSON.parse(textoResposta);
+} catch (erroParse) {
+    console.error("JSON recebido da IA (inválido):", textoResposta);
+    throw new Error(`Falha ao interpretar resposta da IA: ${erroParse.message}\n\nTexto recebido (primeiros 500 caracteres):\n${textoResposta.substring(0, 500)}`);
+}
 
             for (const item of classificacoes) {
                 const noticia = lote.find(n => n.url === item.url);
