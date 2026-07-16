@@ -16,7 +16,7 @@ export default async function handler(req, res) {
                 "Authorization": `Bearer ${process.env.NVIDIA_API_KEY}`
             },
             body: JSON.stringify({
-                model: "google/gemma-3n-e4b-it",
+                model: "meta/llama-3.1-8b-instruct",
                 messages: [{ role: "user", content: prompt }],
                 temperature: 0.1,
                 max_tokens: 512
