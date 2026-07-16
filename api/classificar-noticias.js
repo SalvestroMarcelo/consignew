@@ -19,7 +19,7 @@ export default async function handler(req, res) {
                 model: "google/gemma-3n-e4b-it",
                 messages: [{ role: "user", content: prompt }],
                 temperature: 0.1,
-                max_tokens: 2048
+                max_tokens: 512
             })
         });
 
