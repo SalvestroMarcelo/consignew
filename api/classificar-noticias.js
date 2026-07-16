@@ -19,7 +19,7 @@ export default async function handler(req, res) {
                 model: "meta/llama-3.1-8b-instruct",
                 messages: [{ role: "user", content: prompt }],
                 temperature: 0.2,
-                max_tokens: 2048
+                max_tokens: 800
             })
         });
 
