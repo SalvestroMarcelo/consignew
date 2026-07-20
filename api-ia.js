@@ -11,25 +11,27 @@ function montarPrompt(noticias) {
         return `${i}) Título: ${n.titulo}\nResumo: ${resumoCurto}`;
     }).join("\n\n");
 
-    return `Você é um analista especializado em crédito consignado no Brasil. Classifique cada notícia abaixo em uma das três categorias, seguindo estritamente estes critérios:
+    return `Você é um analista sênior especializado no mercado de crédito consignado no Brasil. Sua função é classificar notícias para uma mesa de operações, identificando oportunidades de vendas e mudanças críticas nas regras do mercado.
 
-VIAVEL: notícias que indicam aumento de margem consignável, liberação de novos cartões, aumentos salariais reais de servidores públicos (municipais, estaduais ou federais), novos convênios de consignado abertos, ou decisões judiciais/governamentais que facilitam ou expandem o crédito.
+Classifique cada notícia abaixo em uma das três categorias, seguindo estritamente estes critérios adaptados para a rotina operacional do setor:
 
-DUVIDOSA: notícias sobre cortes parciais, suspensões temporárias de bancos que não afetam o mercado como um todo, greves gerais em andamento que possam travar o setor temporariamente, ou promessas políticas futuras sem datas definidas e sem aprovação oficial.
+VIAVEL: Notícias que indicam aumento direto de receita ou volume de vendas. Inclui: aumento de margem consignável, liberação de novos cartões/benefícios, aumentos salariais reais de servidores (municipais, estaduais ou federais), abertura de novos convênios, ou decisões que facilitam a contratação imediata.
 
-INVIAVEL: notícias sobre redução do teto de juros (que afasta os bancos e trava as operações), suspensão definitiva de linhas de crédito, fraudes/golpes descobertas no setor, ou reajustes de categorias que não possuem margem consignável em folha.
+ESTRATEGICA: Notícias sobre mudanças regulatórias, novas regras do governo, pareceres jurídicos/alertas de especialistas sobre leis do setor (como mudanças no consignado CLT ou INSS), e reestruturações que afetam as regras do jogo para todo o mercado. São notícias indispensáveis para a conformidade e orientação do cliente, mesmo que tragam alertas de risco.
 
-Para cada notícia, atribua também uma relevância seguindo esta regra:
-- Se a categoria for VIAVEL: dê uma nota de 0 a 100 indicando o quão boa é essa oportunidade (100 = oportunidade excelente e de alto impacto, 0 = oportunidade fraca ou de baixo impacto).
-- Se a categoria for DUVIDOSA ou INVIAVEL: a relevância não se aplica. Atribua sempre o valor 0 nesses dois casos.
+INVIAVEL: Notícias sem impacto operacional ou puramente negativas que travam o mercado. Inclui: redução drástica do teto de juros (que afasta bancos), suspensão definitiva de linhas por fraude/golpes, greves gerais prolongadas que paralisam os sistemas, ou reajustes de categorias que sabidamente não possuem margem consignável em folha.
+
+Regra de Relevância (Nota de 0 a 100):
+- Para notícias VIAVEL: meça o impacto comercial (100 = explosão de novos contratos/público gigante, 0 = nicho muito pequeno).
+- Para notícias ESTRATEGICA: meça a importância da informação para o operador (100 = mudança drástica na lei/regras que todos precisam saber hoje, 0 = aviso burocrático de baixo impacto).
+- Para notícias INVIAVEL: a relevância não se aplica. Atribua sempre o valor 0.
 
 Notícias para classificar (numeradas de 0 a ${noticias.length - 1}):
 
 ${listaFormatada}
 
-Responda APENAS com um array JSON válido, sem blocos de código markdown (como \`\`\`json), sem textos introdutórios e sem explicações. Use o número do item (não repita título nem URL), neste formato exato:
-[{"indice": 0, "categoria": "VIAVEL|DUVIDOSA|INVIAVEL", "relevancia": 0}]`;
-}
+Responda APENAS com um array JSON válido, sem blocos de código markdown (como \`\`\`json), sem textos introdutórios e sem explicações. Use o número do item neste formato exato:
+[{"indice": 0, "categoria": "VIAVEL|ESTRATEGICA|INVIAVEL", "relevancia": 0}]`;
 
 async function processarLote(lote) {
     const prompt = montarPrompt(lote);
