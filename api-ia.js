@@ -1,4 +1,4 @@
-// api-ia.js - Classificação via função serverless (Vercel), com lotes paralelos e resposta compacta (por índice, não por URL)
+// api-ia.js - Classificação via função serverless (Vercel), com lotes paralelos para maior velocidade
 
 function relatarErroNaIA(contexto, erro) {
     console.error(`[IA] Erro em ${contexto}:`, erro);
@@ -8,7 +8,7 @@ function relatarErroNaIA(contexto, erro) {
 function montarPrompt(noticias) {
     const listaFormatada = noticias.map((n, i) => {
         const resumoCurto = n.snippet ? n.snippet.substring(0, 200) : "(sem resumo disponível)";
-        return `${i}) Título: ${n.titulo}\nResumo: ${resumoCurto}`;
+        return `${i}) URL: ${n.url}\nTítulo: ${n.titulo}\nResumo: ${resumoCurto}`;
     }).join("\n\n");
 
     return `Você é um analista especializado em crédito consignado no Brasil. Classifique cada notícia abaixo em uma das três categorias, seguindo estritamente estes critérios:
@@ -30,7 +30,6 @@ ${listaFormatada}
 Responda APENAS com um array JSON válido, sem blocos de código markdown (como \`\`\`json), sem textos introdutórios e sem explicações, seguindo este formato exato:
 [{"url": "...", "categoria": "VIAVEL|DUVIDOSA|INVIAVEL", "relevancia": 0}]`;
 }
-
 
 async function processarLote(lote) {
     const prompt = montarPrompt(lote);
@@ -71,7 +70,7 @@ async function processarLote(lote) {
 
     let contador = 0;
     for (const item of classificacoes) {
-        const noticia = lote[item.indice];
+        const noticia = lote.find(n => n.url === item.url);
         if (!noticia) continue;
 
         noticia.categoria = item.categoria;
