@@ -6,7 +6,7 @@ const RSS2JSON_API_KEY = '7z7tg0enqpufvp94s3qvhsbsznctjpqswlnegfej'; // troque p
 async function atualizarNoticiasDoRSS() {
     console.log("Buscando atualizações via rss2json...");
 
-    const urlProvedor = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}&api_key=${RSS2JSON_API_KEY}&count=50`;
+    const urlProvedor = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}&api_key=${RSS2JSON_API_KEY}&count=20`;
 
     try {
         const resposta = await fetch(urlProvedor);
