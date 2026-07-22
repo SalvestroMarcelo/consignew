@@ -1,5 +1,5 @@
 // api/resolve-url.js
-// Função serverless que resolve URLs do Google News usando o endpoint interno batchexecute
+// Função serverless que resolve URLs do Google News usando batchexecute (método atualizado 2024/2025)
 export default async function handler(req, res) {
     if (req.method !== "POST") {
         return res.status(405).json({ error: "Método não permitido" });
@@ -7,12 +7,10 @@ export default async function handler(req, res) {
 
     try {
         const { urls } = req.body;
-
         if (!urls || !Array.isArray(urls) || urls.length === 0) {
             return res.status(400).json({ error: "URLs inválidas" });
         }
 
-        // Função para decodificar uma URL do Google News via batchexecute
         async function decodificarUrl(url) {
             try {
                 // Se não é do Google News, retorna como está
@@ -20,54 +18,76 @@ export default async function handler(req, res) {
                     return { original: url, resolvido: url };
                 }
 
-                // Extrai o ID base64 do caminho /articles/XXXXX
-                const urlObj = new URL(url);
-                const pathParts = urlObj.pathname.split('/');
-                const articlesIndex = pathParts.indexOf('articles');
-                
-                if (articlesIndex === -1 || articlesIndex >= pathParts.length - 1) {
-                    return { original: url, resolvido: url };
-                }
-
-                const base64Id = pathParts[articlesIndex + 1].split('?')[0];
-
-                // Monta o payload para o batchexecute
-                const payload = `[[["Fbv4je",["garturlreq",[["en-US","US",["FINANCE_TOP_INDICES","WEB_TEST_1_0_0"],null,null,1,1,"US:en",null,180,null,null,null,null,null,0,null,null,[1608992183,723341000]],"en-US","US",1,[2,3,4,8],1,0,"655000234",0,0,null,0],"${base64Id}"]',null,"generic"]]]`;
-
-                // Faz a requisição POST para o endpoint interno do Google
-                const response = await fetch("https://news.google.com/_/DotsSplashUi/data/batchexecute?rpcids=Fbv4je", {
-                    method: "POST",
+                // PASSO 1: Faz GET na URL do Google News para extrair dados do HTML
+                const getResponse = await fetch(url, {
+                    method: 'GET',
                     headers: {
-                        "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
-                        "Referrer": "https://news.google.com/"
-                    },
-                    body: "f.req=" + encodeURIComponent(payload)
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                    }
                 });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
+                if (!getResponse.ok) {
+                    throw new Error(`GET HTTP ${getResponse.status}`);
                 }
 
-                const text = await response.text();
+                const html = await getResponse.text();
                 
-                // Extrai o URL da resposta
-                const header = '["garturlres","';
-                const footer = '",';
-                
-                const headerIndex = text.indexOf(header);
-                if (headerIndex === -1) {
-                    throw new Error("Header não encontrado na resposta");
+                // Extrai o atributo data-p do elemento c-wiz usando regex
+                const dataPMatch = html.match(/data-p="([^"]+)"/);
+                if (!dataPMatch) {
+                    throw new Error("Atributo data-p não encontrado no HTML");
                 }
 
-                const start = text.substring(headerIndex + header.length);
-                const footerIndex = start.indexOf(footer);
+                // Decodifica e processa o data-p
+                const dataP = dataPMatch[1]
+                    .replace(/&quot;/g, '"')
+                    .replace(/&#39;/g, "'")
+                    .replace(/&amp;/g, '&')
+                    .replace(/&lt;/g, '<')
+                    .replace(/&gt;/g, '>');
                 
-                if (footerIndex === -1) {
-                    throw new Error("Footer não encontrado na resposta");
+                let parsedData = JSON.parse(dataP.replace('%.@.', '["garturlreq",'));
+                
+                // PASSO 2: Monta o payload para o batchexecute
+                const payload = {
+                    'f.req': JSON.stringify([[
+                        ['Fbv4je', JSON.stringify([...parsedData.slice(0, -6), ...parsedData.slice(-2)]), 'null', 'generic']
+                    ]])
+                };
+
+                // Faz POST no endpoint interno do Google
+                const postResponse = await fetch('https://news.google.com/_/DotsSplashUi/data/batchexecute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                    },
+                    body: new URLSearchParams(payload).toString()
+                });
+
+                if (!postResponse.ok) {
+                    throw new Error(`POST HTTP ${postResponse.status}`);
                 }
 
-                const urlResolvido = start.substring(0, footerIndex);
+                const responseText = await postResponse.text();
                 
+                // Remove o prefixo )]}' que o Google adiciona
+                const cleanText = responseText.replace(/^\)\]\}'/, '');
+                const responseData = JSON.parse(cleanText);
+                
+                // Extrai a URL original da resposta
+                const arrayString = responseData[0][2];
+                if (!arrayString) {
+                    throw new Error("Resposta não contém arrayString");
+                }
+                
+                const urlData = JSON.parse(arrayString);
+                const urlResolvido = urlData[1];
+                
+                if (!urlResolvido) {
+                    throw new Error("URL resolvida não encontrada na resposta");
+                }
+
                 return { original: url, resolvido: urlResolvido };
             } catch (err) {
                 console.error(`Erro ao decodificar ${url}:`, err.message);
@@ -78,7 +98,6 @@ export default async function handler(req, res) {
 
         // Processa todas as URLs em paralelo
         const resultados = await Promise.all(urls.map(decodificarUrl));
-
         return res.status(200).json({ resultados });
     } catch (err) {
         return res.status(500).json({ error: err.message });
