@@ -265,6 +265,18 @@
     color: var(--text-light);
     font-weight: 400;
   }
+	/* Estado das notícias */
+  .noticia-item {
+    transition: opacity 0.3s ease;
+  }
+
+  .noticia-vista {
+    opacity: 0.5; /* 50% - já vista, mas não clicada */
+  }
+
+  .noticia-clicada {
+    opacity: 0.1; /* 10% - já foi acessada */
+  }
 
   /* RELEVÂNCIA */
   .card-relevance {
