@@ -442,9 +442,19 @@ window.addEventListener('DOMContentLoaded', async () => {
     try {
         await initDatabase();
         console.log("Banco de dados local ativado no HTML.");
-        await renderizarListaNoticias();
+        
+        const noticias = await obterTodasNoticias();
+        
+        // Se não houver notícias, busca automaticamente
+        if (noticias.length === 0) {
+            console.log("Nenhuma notícia encontrada. Iniciando primeira sincronização automática...");
+            await dispararFluxoCompleto(); // Chama a função que já existe no seu código
+        } else {
+            // Se já tem notícias, apenas renderiza
+            await renderizarListaNoticias(filtroAtual);
+        }
     } catch (err) {
-        alert("[ERRO INTERFACE]\nFalha ao inicializar o app:\n" + err);
+        console.error("Erro fatal na inicialização:", err);
     }
 });
 
