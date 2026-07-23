@@ -265,17 +265,17 @@
     font-weight: 400;
   }
 	/* Estado das notícias */
-  .noticia-item {
+.noticia-item {
     transition: opacity 0.3s ease;
-  }
+}
 
-  .noticia-vista {
+.noticia-vista {
     opacity: 0.5; /* 50% - já vista, mas não clicada */
-  }
+}
 
-  .noticia-clicada {
+.noticia-clicada {
     opacity: 0.1; /* 10% - já foi acessada */
-  }
+}
 
   /* RELEVÂNCIA */
   .card-relevance {
@@ -484,77 +484,72 @@ async function filtrarAbas(categoria, elementoTab) {
     await renderizarNoticiasNaTela();
 }
 
-// Desenha fisicamente os cartões na tela com base no banco IndexedDB
-        async function renderizarLista(categoria = 'TODAS') {
-            const lista = document.getElementById('lista-noticias');
-            const noticias = await obterTodasNoticias();
-            
-            // Filtra
-            const filtradas = categoria === 'TODAS' 
-                ? noticias 
-                : noticias.filter(n => n.categoria === categoria);
+async function renderizarListaNoticias(filtroCategoria = 'TODAS') {
+    const container = document.getElementById('lista-noticias-dinamica');
+    if (!container) return;
 
-            // Ordena por relevância e data
-            filtradas.sort((a, b) => {
-                if (b.relevancia !== a.relevancia) return b.relevancia - a.relevancia;
-                return b.dataPublicacao - a.dataPublicacao;
-            });
+    const noticias = await obterTodasNoticias();
+    
+    // Filtra por categoria se necessário
+    const noticiasFiltradas = filtroCategoria === 'TODAS' 
+        ? noticias 
+        : noticias.filter(n => n.categoria === filtroCategoria);
 
-            lista.innerHTML = '';
+    // Ordena por relevância (maior primeiro) e depois por data
+    noticiasFiltradas.sort((a, b) => {
+        if (b.relevancia !== a.relevancia) return b.relevancia - a.relevancia;
+        return b.dataPublicacao - a.dataPublicacao;
+    });
 
-            if (filtradas.length === 0) {
-                lista.innerHTML = '<div class="empty-state">Nenhuma notícia encontrada nesta categoria.</div>';
-                return;
-            }
+    container.innerHTML = '';
 
-            filtradas.forEach(noticia => {
-                // === LÓGICA DE OPACIDADE ===
-                const jaFoiClicada = foiClicada(noticia.url);
-                let classeEstado = 'noticia-vista'; // Padrão: 50%
-                if (jaFoiClicada) {
-                    classeEstado = 'noticia-clicada'; // 10%
-                }
+    if (noticiasFiltradas.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#666;">Nenhuma notícia encontrada.</p>';
+        return;
+    }
 
-                const card = document.createElement('div');
-                // Adiciona a classe de estado junto com as classes originais
-                card.className = `noticia-card ${classeEstado}`;
-                
-                const data = new Date(noticia.dataPublicacao).toLocaleDateString('pt-BR', {
-                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
-                });
-
-                // Badge de categoria
-                let badgeClass = 'badge-pendente';
-                if (noticia.categoria === 'VIAVEL') badgeClass = 'badge-viavel';
-                if (noticia.categoria === 'DUVIDOSA') badgeClass = 'badge-duvidosa';
-                if (noticia.categoria === 'INVIAVEL') badgeClass = 'badge-inviavel';
-
-                // Escape para segurança no onclick
-                const urlSafe = noticia.url.replace(/'/g, "\\'");
-
-                card.innerHTML = `
-                    <div class="noticia-header">
-                        <span class="badge ${badgeClass}">${noticia.categoria}</span>
-                        <span class="relevancia">Relevância: ${noticia.relevancia || 0}/100</span>
-                    </div>
-                    <h3 class="noticia-titulo">
-                        <a href="${noticia.url}" 
-                           target="_blank" 
-                           rel="noopener noreferrer"
-                           onclick="marcarComoClicada('${urlSafe}'); this.closest('.noticia-card').classList.remove('noticia-vista'); this.closest('.noticia-card').classList.add('noticia-clicada');">
-                            ${noticia.titulo}
-                        </a>
-                    </h3>
-                    <p class="noticia-snippet">${noticia.snippet || ''}</p>
-                    <div class="noticia-meta">
-                        <span>📍 ${noticia.fonte || 'Desconhecida'}</span>
-                        <span>📅 ${data}</span>
-                    </div>
-                `;
-
-                lista.appendChild(card);
-            });
+    noticiasFiltradas.forEach(noticia => {
+        const jaFoiClicada = foiClicada(noticia.url);
+        
+        // Lógica de Opacidade:
+        // Clicada = 10% | Vista (existe no banco) = 50% | Nova = 100%
+        // Como todas vêm do banco, se não foi clicada, é considerada "vista" (50%)
+        let classeEstado = 'noticia-vista'; 
+        if (jaFoiClicada) {
+            classeEstado = 'noticia-clicada';
         }
+
+        const card = document.createElement('div');
+        card.className = `noticia-item ${classeEstado}`;
+        card.style.cssText = "border:1px solid #ddd; padding:15px; margin-bottom:10px; border-radius:8px; background:#fff;";
+
+        // Badge de categoria
+        let badgeColor = '#ccc';
+        let badgeText = noticia.categoria;
+        if (noticia.categoria === 'VIAVEL') badgeColor = '#28a745';
+        if (noticia.categoria === 'DUVIDOSA') badgeColor = '#ffc107';
+        if (noticia.categoria === 'INVIAVEL') badgeColor = '#dc3545';
+
+        card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:start;">
+                <span style="background:${badgeColor}; color:#fff; padding:2px 8px; border-radius:4px; font-size:0.8em; font-weight:bold;">${badgeText}</span>
+                <span style="font-size:0.8em; color:#888;">Relevância: ${noticia.relevancia}/100</span>
+            </div>
+            <h3 style="margin:10px 0 5px;">
+                <a href="${noticia.url}" 
+                   target="_blank" 
+                   style="text-decoration:none; color:#0056b3;"
+                   onclick="marcarComoClicada('${noticia.url.replace(/'/g, "\\'")}'); this.closest('.noticia-item').classList.remove('noticia-vista'); this.closest('.noticia-item').classList.add('noticia-clicada');">
+                    ${noticia.titulo}
+                </a>
+            </h3>
+            <p style="font-size:0.9em; color:#555; margin:5px 0;">${noticia.snippet || ''}</p>
+            <small style="color:#999;">Fonte: ${noticia.fonte} | ${new Date(noticia.dataPublicacao).toLocaleDateString()}</small>
+        `;
+
+        container.appendChild(card);
+    });
+}
 
 // Função temporária de clique (Próxima fase ligará o scraping)
 function solicitarResumo(urlNoticia) {
