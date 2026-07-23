@@ -1,211 +1,562 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitor Consignado</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f9; color: #333; }
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-        h1 { margin: 0; font-size: 1.5rem; color: #2c3e50; }
-        
-        /* Botões e Filtros */
-        .controles { display: flex; gap: 10px; flex-wrap: wrap; }
-        button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: background 0.2s; background-color: #e0e0e0; color: #333; }
-        button:hover { background-color: #d0d0d0; }
-        button.ativo { background-color: #0056b3; color: white; }
-        button#btn-atualizar { background-color: #28a745; color: white; }
-        button#btn-atualizar:hover { background-color: #218838; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitor Consignado</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-        /* Lista de Notícias */
-        #lista-noticias-dinamica { max-width: 900px; margin: 0 auto; }
-        
-        /* Card Base */
-        .noticia-item {
-            border: 1px solid #ddd;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            background: #fff;
-            transition: opacity 0.3s ease; /* Transição suave para mudança de estado */
-        }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        /* === ESTILOS DE OPACIDADE (NOVO) === */
-        .noticia-vista { opacity: 0.5; }   /* 50% - Já existia no banco, não foi clicada */
-        .noticia-clicada { opacity: 0.1; } /* 10% - Já foi acessada pelo usuário */
+  :root {
+    --primary: #2BBFA4;
+    --primary-dark: #1E9E87;
+    --primary-light: #E8F8F5;
+    --primary-mid: #C2EDE6;
+    --bg: #F4F7F6;
+    --white: #FFFFFF;
+    --text-dark: #1A2E2A;
+    --text-mid: #4A6460;
+    --text-light: #8FA8A3;
+    --viavel: #2BBFA4;
+    --duvidosa: #F5A623;
+    --inviavel: #B0BEC5;
+  }
 
-        .noticia-item h3 { margin: 10px 0 5px; font-size: 1.1rem; line-height: 1.4; }
-        .noticia-item a { text-decoration: none; color: #0056b3; }
-        .noticia-item a:hover { text-decoration: underline; }
-        .noticia-item p { font-size: 0.9em; color: #555; margin: 5px 0; line-height: 1.5; }
-        .noticia-meta { font-size: 0.8em; color: #888; display: flex; justify-content: space-between; margin-top: 8px; }
-        
-        /* Badges de Categoria */
-        .badge { padding: 2px 8px; border-radius: 4px; font-size: 0.75em; font-weight: bold; color: #fff; text-transform: uppercase; }
-        .badge-VIAVEL { background-color: #28a745; }
-        .badge-DUVIDOSA { background-color: #ffc107; color: #333; }
-        .badge-INVIAVEL { background-color: #dc3545; }
-        .badge-PENDENTE { background-color: #6c757d; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #E0E8E6;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 40px 0;
+  }
 
-        /* Loading Spinner */
-        #loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; }
-        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #0056b3; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 10px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
+  .phone {
+    width: 390px;
+    height: 844px; /* Mudado de min-height para height fixo */
+    background: var(--bg);
+    border-radius: 40px;
+    overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.25);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--primary);
+    padding: 52px 24px 24px;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .back-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.2);
+    border-radius: 10px;
+  }
+
+  .header-title {
+    color: white;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  .header-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .header-menu span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: white;
+    border-radius: 2px;
+  }
+
+  .header-menu span:last-child { width: 14px; }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 8px 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.6);
+    cursor: pointer;
+    position: relative;
+    letter-spacing: 0.2px;
+  }
+
+  .tab.active {
+    color: white;
+    font-weight: 700;
+  }
+
+  .tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 20%;
+    width: 60%;
+    height: 2px;
+    background: white;
+    border-radius: 2px;
+  }
+
+  /* TIMESTAMP */
+  .timestamp-bar {
+    background: var(--primary-light);
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .timestamp-text {
+    font-size: 11px;
+    color: var(--primary-dark);
+    font-weight: 500;
+  }
+
+  .refresh-btn {
+    font-size: 11px;
+    color: var(--primary);
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* LISTA COM SCROLL INDEPENDENTE */
+  .list-container {
+    flex: 1;
+    overflow-y: auto; /* Mantém a rolagem ativa só aqui dentro */
+    padding: 16px 20px 24px; /* Ajustado o padding inferior para alinhar com o rodapé */
+  }
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* MENSAGEM VAZIA */
+  .empty-msg {
+    text-align: center;
+    color: var(--text-light);
+    font-size: 13px;
+    padding: 40px 20px;
+  }
+
+  /* CARD */
+  .card {
+    background: var(--white);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  .card-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px;
+  }
+
+  .card-icon-box {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .card-icon-box.viavel, .card-icon-box.pending { background: var(--primary); }
+  .card-icon-box.duvidosa { background: var(--duvidosa); }
+  .card-icon-box.inviavel { background: var(--inviavel); }
+
+  .card-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .card-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .card-status {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .card-status.viavel { color: var(--primary); }
+  .card-status.pending { color: var(--text-light); }
+  .card-status.duvidosa { color: var(--duvidosa); }
+  .card-status.inviavel { color: var(--inviavel); }
+
+  .card-time {
+    font-size: 10px;
+    color: var(--text-light);
+    font-weight: 400;
+  }
+
+  .card-title-link {
+    text-decoration: none;
+    color: var(--text-dark);
+    display: block;
+    cursor: pointer;
+  }
+  
+  .card-title-link:hover {
+    color: var(--primary-dark);
+  }
+
+  .card-source {
+    font-size: 11px;
+    color: var(--text-light);
+    font-weight: 400;
+  }
+
+  /* RELEVÂNCIA */
+  .card-relevance {
+    padding: 0 14px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .relevance-label {
+    font-size: 10px;
+    color: var(--text-light);
+    white-space: nowrap;
+  }
+
+  .relevance-bar {
+    flex: 1;
+    height: 4px;
+    background: #EEF1F0;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .relevance-fill {
+    height: 100%;
+    border-radius: 4px;
+  }
+
+  .relevance-fill.viavel, .relevance-fill.pending { background: var(--primary); }
+  .relevance-fill.duvidosa { background: var(--duvidosa); }
+  .relevance-fill.inviavel { background: var(--inviavel); }
+
+  .relevance-pct {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-mid);
+    min-width: 28px;
+    text-align: right;
+  }
+
+  /* BOTÕES */
+  .card-actions {
+    display: flex;
+    border-top: 1px solid #F0F4F3;
+  }
+
+  .action-btn {
+    flex: 1;
+    padding: 12px 4px;
+    border: none;
+    background: transparent;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: var(--text-mid);
+    cursor: pointer;
+  }
+
+  .action-btn.highlight {
+    color: var(--primary);
+    background: var(--primary-light);
+  }
+
+  /* BOTTOM NAV */
+  .bottom-nav {
+    position: relative; /* Mudado de absolute para relative */
+    width: 100%;
+    background: white;
+    border-top: 1px solid #EEF1F0;
+    display: flex;
+    padding: 12px 0 24px;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+    z-index: 10;
+    flex-shrink: 0; /* Garante que o rodapé não seja esmagado */
+  }
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .nav-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--primary);
+    margin-top: 2px;
+  }
+
+  .nav-label {
+    font-size: 10px;
+    color: var(--text-light);
+    font-weight: 500;
+  }
+
+  .nav-item.active .nav-label { color: var(--primary); font-weight: 700; }
+</style>
 </head>
 <body>
+<div class="phone">
 
-    <!-- Overlay de Carregamento -->
-    <div id="loading-overlay">
-        <div class="spinner"></div>
-        <p id="loading-text">Processando...</p>
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-top">
+      <div class="back-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M4 6h16M4 12h16M4 18h16" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="header-title">Monitor Consignado</div>
+      <div class="header-menu"><span></span><span></span><span></span></div>
     </div>
 
-    <header>
-        <h1>📰 Monitor Consignado</h1>
-        <div class="controles">
-            <button class="filtro-btn ativo" data-categoria="TODAS">Todas</button>
-            <button class="filtro-btn" data-categoria="VIAVEL">✅ Viáveis</button>
-            <button class="filtro-btn" data-categoria="DUVIDOSA">⚠️ Duvidosas</button>
-            <button class="filtro-btn" data-categoria="INVIAVEL">❌ Inviáveis</button>
-            <button class="filtro-btn" data-categoria="PENDENTE">🕕 Pendentes</button>
-            <button id="btn-atualizar">↻ Atualizar Notícias</button>
-        </div>
-    </header>
+    <div class="tabs">
+      <div class="tab active" onclick="filtrarAbas('TODAS', this)">Todas</div>
+      <div class="tab" onclick="filtrarAbas('VIAVEL', this)">✅ Viáveis</div>
+      <div class="tab" onclick="filtrarAbas('DUVIDOSA', this)">⚠️ Duvidosas</div>
+      <div class="tab" onclick="filtrarAbas('INVIAVEL', this)">❌ Inviáveis</div>
+    </div>
+  </div>
 
-    <main id="lista-noticias-dinamica">
-        <p style="text-align:center; color:#666;">Aguardando primeira sincronização...</p>
-    </main>
+  <!-- TIMESTAMP BAR -->
+  <div class="timestamp-bar">
+    <div class="timestamp-text" id="txt-timestamp">🕕 Aguardando primeira sincronização...</div>
+    <div class="refresh-btn" onclick="dispararFluxoCompleto()">↻ Atualizar</div>
+  </div>
 
-    <!-- Scripts do Projeto -->
-    <script src="database.js"></script>
-    <script src="rss-reader.js"></script>
-    <script src="api-ia.js"></script>
+  <!-- LISTA DE NOTÍCIAS -->
+  <div class="list-container">
+    <div class="list" id="lista-noticias-dinamica">
+      <!-- O Javascript vai injetar os cartões reais aqui -->
+    </div>
+  </div>
 
-    <script>
-        // Estado atual do filtro
-        let filtroAtual = 'TODAS';
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <div class="nav-item active">
+      <span class="nav-label">Notícias</span>
+      <div class="nav-dot"></div>
+    </div>
+    <div class="nav-item"><span class="nav-label">Materiais</span></div>
+    <div class="nav-item"><span class="nav-label">Histórico</span></div>
+    <div class="nav-item"><span class="nav-label">Config.</span></div>
+  </div>
 
-        // Inicialização
-        window.addEventListener('DOMContentLoaded', async () => {
-            try {
-                await initDatabase();
-                console.log("Banco de dados local ativado no HTML.");
-                await renderizarListaNoticias(filtroAtual);
-            } catch (err) {
-                console.error("Erro fatal na inicialização:", err);
-            }
-        });
+</div>
 
-        // Event Listeners dos Filtros
-        document.querySelectorAll('.filtro-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('ativo'));
-                e.target.classList.add('ativo');
-                filtroAtual = e.target.dataset.categoria;
-                renderizarListaNoticias(filtroAtual);
-            });
-        });
+<!-- CARREGAMENTO DOS SCRIPTS DO MOTOR (MESMA PASTA) -->
+<script src="database.js"></script>
+<script src="rss-reader.js"></script>
+<script src="api-ia.js"></script>
 
-        // Botão Atualizar
-        document.getElementById('btn-atualizar').addEventListener('click', async () => {
-            const overlay = document.getElementById('loading-overlay');
-            const loadingText = document.getElementById('loading-text');
+<script>
+let filtroAtual = 'TODAS';
+
+// Inicialização automática ao carregar a página
+window.addEventListener('DOMContentLoaded', async () => {
+    try {
+        await initDatabase();
+        console.log("Banco de dados local ativado no HTML.");
+        await renderizarNoticiasNaTela();
+    } catch (err) {
+        alert("[ERRO INTERFACE]\nFalha ao inicializar o app:\n" + err);
+    }
+});
+
+//  VERSÃO DEFINITIVA: Roda o RSS e aciona a Inteligência Artificial
+async function dispararFluxoCompleto() {
+    const btn = document.querySelector('.refresh-btn');
+    btn.innerText = "⏳ Buscando...";
+    
+    try {
+        // 1. Puxa do Google Notícias e salva no banco
+        const sucessoRSS = await atualizarNoticiasDoRSS();
+        
+        if (sucessoRSS) {
+            // 2. Muda o status visual do botão para sabermos que a IA foi chamada
+            btn.innerText = "🧠 Analisando...";
             
-            overlay.style.display = 'flex';
-            
-            try {
-                // 1. Buscar RSS
-                loadingText.innerText = "Buscando novas notícias...";
-                await atualizarNoticiasDoRSS();
-                
-                // 2. Classificar com IA
-                loadingText.innerText = "Classificando notícias com IA...";
-                await classificarNoticiasPendentes();
-                
-                // 3. Re-renderizar lista
-                await renderizarListaNoticias(filtroAtual);
-                
-            } catch (err) {
-                console.error("Erro no fluxo de atualização:", err);
-            } finally {
-                overlay.style.display = 'none';
-            }
-        });
-
-        /**
-         * Renderiza a lista de notícias aplicando a lógica de opacidade
-         */
-        async function renderizarListaNoticias(categoriaFiltro) {
-            const container = document.getElementById('lista-noticias-dinamica');
-            if (!container) return;
-
-            const noticias = await obterTodasNoticias();
-            
-            // Filtra por categoria
-            const noticiasFiltradas = categoriaFiltro === 'TODAS' 
-                ? noticias 
-                : noticias.filter(n => n.categoria === categoriaFiltro);
-
-            // Ordena: Maior relevância primeiro, depois mais recente
-            noticiasFiltradas.sort((a, b) => {
-                if (b.relevancia !== a.relevancia) return b.relevancia - a.relevancia;
-                return b.dataPublicacao - a.dataPublicacao;
-            });
-
-            container.innerHTML = '';
-
-            if (noticiasFiltradas.length === 0) {
-                container.innerHTML = '<p style="text-align:center; color:#666; padding:20px;">Nenhuma notícia encontrada nesta categoria.</p>';
-                return;
-            }
-
-            noticiasFiltradas.forEach(noticia => {
-                // === LÓGICA DE OPACIDADE ===
-                const jaFoiClicada = foiClicada(noticia.url);
-                
-                // Se foi clicada -> 10% | Se existe no banco (todas existem aqui) e não foi clicada -> 50%
-                // Nota: Se quiser que notícias NOVAS (chegadas nesta sessão) fiquem 100%, 
-                // seria necessário um flag temporal. Pela regra "Opção 1", tudo que está no banco é "visto".
-                let classeEstado = 'noticia-vista'; 
-                if (jaFoiClicada) {
-                    classeEstado = 'noticia-clicada';
-                }
-
-                const card = document.createElement('div');
-                card.className = `noticia-item ${classeEstado}`;
-                
-                // Formatação de Data
-                const dataStr = new Date(noticia.dataPublicacao).toLocaleDateString('pt-BR', {
-                    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit'
-                });
-
-                // Escape simples para evitar quebra no onclick se houver aspas simples no título/url
-                const urlSafe = noticia.url.replace(/'/g, "\\'");
-
-                card.innerHTML = `
-                    <div class="noticia-meta">
-                        <span class="badge badge-${noticia.categoria}">${noticia.categoria}</span>
-                        <span>Relevância: ${noticia.relevancia || 0}/100</span>
-                    </div>
-                    <h3>
-                        <a href="${noticia.url}" 
-                           target="_blank" 
-                           rel="noopener noreferrer"
-                           onclick="marcarComoClicada('${urlSafe}'); this.closest('.noticia-item').classList.remove('noticia-vista'); this.closest('.noticia-item').classList.add('noticia-clicada');">
-                            ${noticia.titulo}
-                        </a>
-                    </h3>
-                    <p>${noticia.snippet || ''}</p>
-                    <div class="noticia-meta">
-                        <span>📍 ${noticia.fonte || 'Desconhecida'}</span>
-                        <span>📅 ${dataStr}</span>
-                    </div>
-                `;
-
-                container.appendChild(card);
-            });
+            // 3. EXECUTA A INTELIGÊNCIA ARTIFICIAL REAL
+            await classificarNoticiasPendentes();
         }
-    </script>
+    } catch (erro) {
+        console.error("Erro detectado no fluxo principal:", erro);
+        alert("[ERRO FLUXO]\nHouve uma falha no processamento:\n" + erro.message);
+    } finally {
+        // Esse bloco roda sempre para destravar a tela
+        btn.innerHTML = "↻ Atualizar";
+        const agora = new Date();
+        document.getElementById('txt-timestamp').innerText = `🕕 Última verificação: hoje às ${agora.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}`;
+        
+        // Redesenha a tela com as cores atualizadas pela IA
+        await renderizarNoticiasNaTela();
+    }
+}// Controla a filtragem das abas superiores
+async function filtrarAbas(categoria, elementoTab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    elementoTab.classList.add('active');
+    filtroAtual = categoria;
+    await renderizarNoticiasNaTela();
+}
+
+// Desenha fisicamente os cartões na tela com base no banco IndexedDB
+async function renderizarNoticiasNaTela() {
+    const container = document.getElementById('lista-noticias-dinamica');
+    try {
+        const dados = await obterTodasNoticias();
+        container.innerHTML = ""; // Limpa a tela
+
+        // Ordena para exibir sempre as notícias mais recentes primeiro
+        dados.sort((a, b) => b.dataPublicacao - a.dataPublicacao);
+
+        // Aplica o filtro da aba selecionada
+        const dadosFiltrados = dados.filter(n => {
+            if (filtroAtual === 'TODAS') return true;
+            return n.categoria === filtroAtual;
+        });
+
+        if (dadosFiltrados.length === 0) {
+            container.innerHTML = `<div class="empty-msg">Nenhuma notícia encontrada nesta categoria. Toque em Atualizar.</div>`;
+            return;
+        }
+
+        dadosFiltrados.forEach(noticia => {
+            const card = document.createElement('div');
+            card.className = 'card';
+
+            // Define estilos visuais baseados na categoria da IA
+            let classeCor = 'pending';
+            let labelStatus = '● Pendente Análise';
+            let iconeSvg = `<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="white"/>`; // Exclamação padrão
+
+            if (noticia.categoria === 'VIAVEL') {
+                classeCor = 'viavel';
+                labelStatus = '● Viável';
+                iconeSvg = `<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="white"/>`;
+            } else if (noticia.categoria === 'DUVIDOSA') {
+                classeCor = 'duvidosa';
+                labelStatus = '● Duvidosa';
+                iconeSvg = `<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="white"/>`;
+            } else if (noticia.categoria === 'INVIAVEL') {
+                classeCor = 'inviavel';
+                labelStatus = '● Não Viável';
+                iconeSvg = `<path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" fill="white"/>`;
+            }
+
+            const horaFormatada = new Date(noticia.dataPublicacao).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+
+            card.innerHTML = `
+                <div class="card-main">
+                    <div class="card-icon-box ${classeCor}">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none">${iconeSvg}</svg>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-status-row">
+                            <span class="card-status ${classeCor}">${labelStatus}</span>
+                            <span class="card-time">${horaFormatada}</span>
+                        </div>
+                        <div class="card-title">
+    								    <a href="${noticia.url}" target="_blank" class="card-title-link">${noticia.titulo}</a>
+			</div>
+                        <div class="card-source">${noticia.fonte}</div>
+                    </div>
+                </div>
+                <div class="card-relevance">
+                    <span class="relevance-label">Relevância</span>
+                    <div class="relevance-bar">
+                        <div class="relevance-fill ${classeCor}" style="width: ${noticia.relevance || noticia.relevancia}%"></div>
+                    </div>
+                    <span class="relevance-pct">${noticia.relevance || noticia.relevancia}%</span>
+                </div>
+                <div class="card-actions">
+                    <button class="action-btn highlight" onclick="solicitarResumo('${noticia.url}')">📄 Solicitar Resumo</button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    } catch (errRender) {
+        alert("[ERRO RENDERIZAÇÃO]\nFalha ao desenhar lista de cartões:\n" + errRender.message);
+    }
+}
+
+// Função temporária de clique (Próxima fase ligará o scraping)
+function solicitarResumo(urlNoticia) {
+    alert(`Solicitação capturada!\nNa próxima fase faremos o scraping e resumo automático do link:\n\n${urlNoticia}`);
+}
+</script>
 </body>
 </html>
