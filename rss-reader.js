@@ -1,9 +1,8 @@
-// rss-reader.js - Busca RSS com deduplicação por título similar (entre fontes diferentes)
-const RSS_URL = 'https://news.google.com/rss/search?q=%22empr%C3%A9stimo+consignado%22+OR+%22reajuste+salarial%22+OR+%22Reajuste+salarial+servidores%22+OR+%22margem+consign%C3%A1vel%22&hl=pt-BR&gl=BR&ceid=BR:pt-419';
+// rss-reader.js - Busca RSS com deduplicação e retry automático
+const RSS_URL = 'https://news.google.com/rss/search?q=empr%C3%A9stimo+consignado+OR+reajuste+salarial+OR+margem+consign%C3%A1vel&hl=pt-BR&gl=BR&ceid=BR:pt-419';
 const RSS2JSON_API_KEY = '7z7tg0enqpufvp94s3qvhsbsznctjpqswlnegfej';
+const MAX_TENTATIVAS = 3;
 
-// Remove acentos, pontuação, caixa alta e o sufixo "- Nome do Site" do final do título,
-// pra sobrar só o "miolo" comparável do título.
 function normalizarTitulo(titulo) {
     return titulo
         .toLowerCase()
@@ -13,8 +12,6 @@ function normalizarTitulo(titulo) {
         .trim();
 }
 
-// Similaridade por sobreposição de palavras (Jaccard). Ignora palavras curtas
-// (artigos, preposições) pra focar no conteúdo relevante do título.
 function similaridadeTitulos(a, b) {
     const palavrasA = new Set(a.split(/\s+/).filter(p => p.length > 3));
     const palavrasB = new Set(b.split(/\s+/).filter(p => p.length > 3));
@@ -25,9 +22,8 @@ function similaridadeTitulos(a, b) {
     return intersecao / uniao;
 }
 
-const LIMITE_SIMILARIDADE = 0.6; // 60% das palavras em comum = considera duplicata
+const LIMITE_SIMILARIDADE = 0.6;
 
-// NOVO: Função para resolver URLs do Google News para URLs originais
 async function resolverUrlsOriginais(urls) {
     try {
         const resposta = await fetch("/api/resolve-url", {
@@ -35,63 +31,75 @@ async function resolverUrlsOriginais(urls) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ urls })
         });
-
-        if (!resposta.ok) {
-            throw new Error(`HTTP ${resposta.status}`);
-        }
-
+        if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
         const data = await resposta.json();
         return data.resultados || [];
     } catch (err) {
         console.error("Erro ao resolver URLs:", err);
-        // Fallback: retorna as URLs originais sem resolução
         return urls.map(url => ({ original: url, resolvido: url }));
     }
 }
 
-async function atualizarNoticiasDoRSS() {
-    console.log("Buscando atualizações via rss2json...");
+async function buscarFeedRSS() {
     const urlProvedor = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}&api_key=${RSS2JSON_API_KEY}&count=20`;
+    
+    for (let tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
+        try {
+            console.log(`Buscando RSS (tentativa ${tentativa}/${MAX_TENTATIVAS})...`);
+            const resposta = await fetch(urlProvedor);
+            
+            if (!resposta.ok) {
+                throw new Error(`HTTP ${resposta.status}`);
+            }
+            
+            const data = await resposta.json();
+            if (!data || !data.items || data.items.length === 0) {
+                throw new Error("Feed vazio");
+            }
+            
+            return data; // Sucesso!
+        } catch (err) {
+            console.warn(`Falha na tentativa ${tentativa}: ${err.message}`);
+            if (tentativa < MAX_TENTATIVAS) {
+                const espera = tentativa * 2000; // 2s, 4s, 6s
+                console.log(`Aguardando ${espera/1000}s antes de tentar novamente...`);
+                await new Promise(r => setTimeout(r, espera));
+            } else {
+                throw err; // Falhou todas as tentativas
+            }
+        }
+    }
+}
 
+async function atualizarNoticiasDoRSS() {
+    console.log("Iniciando busca de notícias...");
+    
     try {
-        const resposta = await fetch(urlProvedor);
-        if (!resposta.ok) {
-            throw new Error(`Falha na requisição HTTP: ${resposta.status}`);
-        }
-
-        const data = await resposta.json();
-
-        if (!data || !data.items || data.items.length === 0) {
-            console.log("Nenhum dado retornado do feed.");
-            return false;
-        }
-
-        // Carrega os títulos já existentes no banco (normalizados) pra comparar
+        const data = await buscarFeedRSS();
+        
         const existentes = await obterTodasNoticias();
         const titulosConhecidos = existentes.map(n => normalizarTitulo(n.titulo));
-
+        
         let novasNoticiasContador = 0;
         let duplicatasIgnoradas = 0;
-
-        // Coleta todas as notícias novas primeiro (sem salvar ainda)
         const noticiasNovas = [];
         
         for (const item of data.items) {
             const url = item.link || item.guid;
             if (!url) continue;
-
+            
             const tituloNormalizado = normalizarTitulo(item.title);
             const jaExisteSimilar = titulosConhecidos.some(
                 t => similaridadeTitulos(t, tituloNormalizado) >= LIMITE_SIMILARIDADE
             );
-
+            
             if (jaExisteSimilar) {
                 duplicatasIgnoradas++;
                 continue;
             }
-
-            const noticia = {
-                url: url, // URL do Google News temporariamente
+            
+            noticiasNovas.push({
+                url: url,
                 titulo: item.title,
                 snippet: item.description || item.content || "",
                 fonte: item.author || "Google Notícias",
@@ -99,39 +107,37 @@ async function atualizarNoticiasDoRSS() {
                 categoria: "PENDENTE",
                 relevancia: 0,
                 resumoTexto: null
-            };
-            
-            noticiasNovas.push(noticia);
-            titulosConhecidos.push(tituloNormalizado); // evita duplicata dentro do mesmo lote também
+            });
+            titulosConhecidos.push(tituloNormalizado);
         }
-
-        // NOVO: Se há notícias novas, resolve as URLs em lote
+        
         if (noticiasNovas.length > 0) {
             console.log(`Resolvendo URLs de ${noticiasNovas.length} notícia(s) nova(s)...`);
-            
             const urlsParaResolver = noticiasNovas.map(n => n.url);
             const resultados = await resolverUrlsOriginais(urlsParaResolver);
             
-            // Atualiza cada notícia com a URL resolvida
             resultados.forEach((resultado, indice) => {
                 if (noticiasNovas[indice]) {
                     noticiasNovas[indice].url = resultado.resolvido;
                 }
             });
             
-            // Agora salva todas as notícias com as URLs originais
             for (const noticia of noticiasNovas) {
-                await salvarNoticia(noticia);
-                novasNoticiasContador++;
+                try {
+                    await salvarNoticia(noticia);
+                    novasNoticiasContador++;
+                } catch (erroSalvamento) {
+                    console.error(`Erro ao salvar "${noticia.titulo}":`, erroSalvamento);
+                }
             }
         }
-
-        console.log(`Processamento concluído: ${novasNoticiasContador} itens novos, ${duplicatasIgnoradas} duplicata(s) ignorada(s).`);
+        
+        console.log(`Processamento concluído: ${novasNoticiasContador} novos, ${duplicatasIgnoradas} duplicatas.`);
         return true;
-
+        
     } catch (err) {
-        console.error("Erro ao buscar/processar o feed:", err);
-        alert("[ERRO DE REDE]\nNão foi possível buscar as notícias.\nDetalhes: " + err.message);
+        console.error("Erro fatal ao buscar feed:", err);
+        alert("[ERRO DE REDE]\nNão foi possível buscar as notícias após várias tentativas.\nDetalhes: " + err.message);
         return false;
     }
 }
