@@ -496,10 +496,7 @@ async function renderizarListaNoticias(filtroCategoria = 'TODAS') {
         : noticias.filter(n => n.categoria === filtroCategoria);
 
     // Ordena por relevância (maior primeiro) e depois por data
-    noticiasFiltradas.sort((a, b) => {
-        if (b.relevancia !== a.relevancia) return b.relevancia - a.relevancia;
-        return b.dataPublicacao - a.dataPublicacao;
-    });
+    noticiasFiltradas.sort((a, b) => b.dataPublicacao - a.dataPublicacao);
 
     container.innerHTML = '';
 
