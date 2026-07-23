@@ -442,7 +442,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     try {
         await initDatabase();
         console.log("Banco de dados local ativado no HTML.");
-        await renderizarLista();
+        await renderizarListaNoticias();
     } catch (err) {
         alert("[ERRO INTERFACE]\nFalha ao inicializar o app:\n" + err);
     }
@@ -474,14 +474,14 @@ async function dispararFluxoCompleto() {
         document.getElementById('txt-timestamp').innerText = `🕕 Última verificação: hoje às ${agora.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}`;
         
         // Redesenha a tela com as cores atualizadas pela IA
-        await renderizarLista();
+        await renderizarListaNoticias();
     }
 }// Controla a filtragem das abas superiores
 async function filtrarAbas(categoria, elementoTab) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     elementoTab.classList.add('active');
     filtroAtual = categoria;
-    await renderizarLista();
+    await renderizarListaNoticias();
 }
 
 async function renderizarListaNoticias(filtroCategoria = 'TODAS') {
