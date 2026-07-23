@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -486,84 +485,76 @@ async function filtrarAbas(categoria, elementoTab) {
 }
 
 // Desenha fisicamente os cartões na tela com base no banco IndexedDB
-async function renderizarNoticiasNaTela() {
-    const container = document.getElementById('lista-noticias-dinamica');
-    try {
-        const dados = await obterTodasNoticias();
-        container.innerHTML = ""; // Limpa a tela
+        async function renderizarLista(categoria = 'TODAS') {
+            const lista = document.getElementById('lista-noticias');
+            const noticias = await obterTodasNoticias();
+            
+            // Filtra
+            const filtradas = categoria === 'TODAS' 
+                ? noticias 
+                : noticias.filter(n => n.categoria === categoria);
 
-        // Ordena para exibir sempre as notícias mais recentes primeiro
-        dados.sort((a, b) => b.dataPublicacao - a.dataPublicacao);
+            // Ordena por relevância e data
+            filtradas.sort((a, b) => {
+                if (b.relevancia !== a.relevancia) return b.relevancia - a.relevancia;
+                return b.dataPublicacao - a.dataPublicacao;
+            });
 
-        // Aplica o filtro da aba selecionada
-        const dadosFiltrados = dados.filter(n => {
-            if (filtroAtual === 'TODAS') return true;
-            return n.categoria === filtroAtual;
-        });
+            lista.innerHTML = '';
 
-        if (dadosFiltrados.length === 0) {
-            container.innerHTML = `<div class="empty-msg">Nenhuma notícia encontrada nesta categoria. Toque em Atualizar.</div>`;
-            return;
-        }
-
-        dadosFiltrados.forEach(noticia => {
-            const card = document.createElement('div');
-            card.className = 'card';
-
-            // Define estilos visuais baseados na categoria da IA
-            let classeCor = 'pending';
-            let labelStatus = '● Pendente Análise';
-            let iconeSvg = `<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="white"/>`; // Exclamação padrão
-
-            if (noticia.categoria === 'VIAVEL') {
-                classeCor = 'viavel';
-                labelStatus = '● Viável';
-                iconeSvg = `<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="white"/>`;
-            } else if (noticia.categoria === 'DUVIDOSA') {
-                classeCor = 'duvidosa';
-                labelStatus = '● Duvidosa';
-                iconeSvg = `<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="white"/>`;
-            } else if (noticia.categoria === 'INVIAVEL') {
-                classeCor = 'inviavel';
-                labelStatus = '● Não Viável';
-                iconeSvg = `<path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" fill="white"/>`;
+            if (filtradas.length === 0) {
+                lista.innerHTML = '<div class="empty-state">Nenhuma notícia encontrada nesta categoria.</div>';
+                return;
             }
 
-            const horaFormatada = new Date(noticia.dataPublicacao).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+            filtradas.forEach(noticia => {
+                // === LÓGICA DE OPACIDADE ===
+                const jaFoiClicada = foiClicada(noticia.url);
+                let classeEstado = 'noticia-vista'; // Padrão: 50%
+                if (jaFoiClicada) {
+                    classeEstado = 'noticia-clicada'; // 10%
+                }
 
-            card.innerHTML = `
-                <div class="card-main">
-                    <div class="card-icon-box ${classeCor}">
-                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none">${iconeSvg}</svg>
+                const card = document.createElement('div');
+                // Adiciona a classe de estado junto com as classes originais
+                card.className = `noticia-card ${classeEstado}`;
+                
+                const data = new Date(noticia.dataPublicacao).toLocaleDateString('pt-BR', {
+                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                });
+
+                // Badge de categoria
+                let badgeClass = 'badge-pendente';
+                if (noticia.categoria === 'VIAVEL') badgeClass = 'badge-viavel';
+                if (noticia.categoria === 'DUVIDOSA') badgeClass = 'badge-duvidosa';
+                if (noticia.categoria === 'INVIAVEL') badgeClass = 'badge-inviavel';
+
+                // Escape para segurança no onclick
+                const urlSafe = noticia.url.replace(/'/g, "\\'");
+
+                card.innerHTML = `
+                    <div class="noticia-header">
+                        <span class="badge ${badgeClass}">${noticia.categoria}</span>
+                        <span class="relevancia">Relevância: ${noticia.relevancia || 0}/100</span>
                     </div>
-                    <div class="card-content">
-                        <div class="card-status-row">
-                            <span class="card-status ${classeCor}">${labelStatus}</span>
-                            <span class="card-time">${horaFormatada}</span>
-                        </div>
-                        <div class="card-title">
-    								    <a href="${noticia.url}" target="_blank" class="card-title-link">${noticia.titulo}</a>
-			</div>
-                        <div class="card-source">${noticia.fonte}</div>
+                    <h3 class="noticia-titulo">
+                        <a href="${noticia.url}" 
+                           target="_blank" 
+                           rel="noopener noreferrer"
+                           onclick="marcarComoClicada('${urlSafe}'); this.closest('.noticia-card').classList.remove('noticia-vista'); this.closest('.noticia-card').classList.add('noticia-clicada');">
+                            ${noticia.titulo}
+                        </a>
+                    </h3>
+                    <p class="noticia-snippet">${noticia.snippet || ''}</p>
+                    <div class="noticia-meta">
+                        <span>📍 ${noticia.fonte || 'Desconhecida'}</span>
+                        <span>📅 ${data}</span>
                     </div>
-                </div>
-                <div class="card-relevance">
-                    <span class="relevance-label">Relevância</span>
-                    <div class="relevance-bar">
-                        <div class="relevance-fill ${classeCor}" style="width: ${noticia.relevance || noticia.relevancia}%"></div>
-                    </div>
-                    <span class="relevance-pct">${noticia.relevance || noticia.relevancia}%</span>
-                </div>
-                <div class="card-actions">
-                    <button class="action-btn highlight" onclick="solicitarResumo('${noticia.url}')">📄 Solicitar Resumo</button>
-                </div>
-            `;
-            container.appendChild(card);
-        });
-    } catch (errRender) {
-        alert("[ERRO RENDERIZAÇÃO]\nFalha ao desenhar lista de cartões:\n" + errRender.message);
-    }
-}
+                `;
+
+                lista.appendChild(card);
+            });
+        }
 
 // Função temporária de clique (Próxima fase ligará o scraping)
 function solicitarResumo(urlNoticia) {
