@@ -1,5 +1,5 @@
 // api/resolve-url.js
-// Função serverless que resolve URLs do Google News usando batchexecute (método atualizado)
+// Função serverless que resolve URLs do Google News usando batchexecute (método atualizado 2024/2025)
 export default async function handler(req, res) {
     if (req.method !== "POST") {
         return res.status(405).json({ error: "Método não permitido" });
