@@ -11,16 +11,25 @@ function montarPrompt(noticias) {
         return `${i}) Título: ${n.titulo}\nResumo: ${resumoCurto}`;
     }).join("\n\n");
 
-    return `Você é um analista especializado em crédito consignado no Brasil. Classifique cada notícia abaixo em uma das três categorias, seguindo estritamente estes critérios:
+    return `Você é um analista especializado em crédito consignado no Brasil, focado exclusivamente no público de SERVIDORES PÚBLICOS (federais, estaduais e municipais), APOSENTADOS e PENSIONISTAS DO INSS.
 
-VIAVEL: notícias que indicam aumento de margem consignável, liberação de novos cartões, aumentos salariais reais de servidores públicos (municipais, estaduais ou federais), novos convênios de consignado abertos, ou decisões judiciais/governamentais que facilitam ou expandem o crédito.
+--- REGRA DE ESCOPO OBRIGATÓRIA (FILTRO ZERO) ---
+O foco operacional é estritamente o SETOR PÚBLICO e INSS. 
+Qualquer notícia referente ao SETOR PRIVADO (CLT, empresas privadas, sindicatos de indústrias, comércio, serviços privados ou trabalhadores autônomos) DEVE ser automaticamente classificada como "INVIÁVEL" e receber relevância entre 0 e 20, por estar fora do escopo de atuação.
 
-DUVIDOSA: notícias sobre cortes parciais, suspensões temporárias de bancos que não afetam o mercado como um todo, greves gerais em andamento que possam travar o setor temporariamente, ou promessas políticas futuras sem datas definidas e sem aprovação oficial.
+--- CRITÉRIOS DE CLASSIFICAÇÃO ---
 
-INVIAVEL: notícias sobre redução do teto de juros (que afasta os bancos e trava as operações), suspensão definitiva de linhas de crédito, fraudes/golpes descobertas no setor, ou reajustes de categorias que não possuem margem consignável em folha.
+VIAVEL: notícias que indicam oportunidades reais no público-alvo (aumento de margem consignável para servidores ou INSS, liberação de novos cartões RMC/RCC, aumentos salariais reais/reajustes aprovados para SERVIDORES PÚBLICOS, novos convênios de consignado abertos com órgãos públicos/prefeituras, ou decisões judiciais/governamentais que facilitam ou expandem o crédito consignado público/INSS).
 
-Para cada notícia, atribua também uma relevância de 0 a 100, indicando o quanto é importante que um profissional do mercado de consignado tenha conhecimento dessa informação. Isso vale para boas oportunidades, mas também para riscos, mudanças regulatórias, novas regras, alertas de fraude, greves, ou qualquer evento que exija atenção ou ação de quem atua no setor — mesmo quando a notícia for classificada como DUVIDOSA ou INVIAVEL.
-(100 = informação crítica, que precisa ser acompanhada de perto e pode exigir uma ação; 0 = pouco relevante, sem impacto prático perceptível no dia a dia do setor.)
+DUVIDOSA: notícias sobre instabilidade temporária no público-alvo (cortes parciais ou suspensões temporárias de bancos que não afetam o mercado como um todo, greves em órgãos públicos ou no INSS que possam atrasar averbações temporariamente, ou promessas/discursos políticos de reajustes para servidores sem projeto aprovado e sem datas definidas).
+
+INVIAVEL: notícias fora do escopo (SETOR PRIVADO / CLT / Sindicatos de Indústria ou Comércio) ou desfavoráveis ao negócio (redução do teto de juros que afasta os bancos e trava as operações, suspensão definitiva de linhas de crédito público/INSS, fraudes/golpes descobertos no setor, ou reajustes de categorias que não possuem margem consignável em folha).
+
+--- PONTUAÇÃO DE RELEVÂNCIA (0 a 100) ---
+Atribua uma relevância indicando a importância estratégica para a gestão do setor:
+- 80 a 100: Informação crítica/regulatória no setor público ou INSS que exige ação ou acompanhamento diário.
+- 40 a 79: Notícias regionais de médio impacto (convênios municipais/estaduais específicos, greves temporárias em órgãos públicos).
+- 0 a 39: Notícias do setor privado (CLT), ruídos políticos sem aprovação ou fatos sem impacto prático no consignado público/INSS.
 
 Notícias para classificar (numeradas de 0 a ${noticias.length - 1}):
 
