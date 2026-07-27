@@ -1,5 +1,5 @@
-// rss-reader.js - Busca RSS com deduplicação e retry automático
-const RSS_URL = 'https://news.google.com/rss/search?q=empr%C3%A9stimo+consignado+OR+reajuste+salarial+OR+margem+consign%C3%A1vel&hl=pt-BR&gl=BR&ceid=BR:pt-419';
+// rss-reader.js - Busca RSS com deduplicação, resolução de URLs e correção de fonte
+const RSS_URL = 'https://news.google.com/rss/search?q=%22empr%C3%A9stimo+consignado%22+OR+%22reajuste+salarial%22+OR+%22Reajuste+salarial+servidores%22+OR+%22margem+consign%C3%A1vel%22&hl=pt-BR&gl=BR&ceid=BR:pt-419';
 const RSS2JSON_API_KEY = '7z7tg0enqpufvp94s3qvhsbsznctjpqswlnegfej';
 const MAX_TENTATIVAS = 3;
 
@@ -24,6 +24,20 @@ function similaridadeTitulos(a, b) {
 
 const LIMITE_SIMILARIDADE = 0.6;
 
+// Extrai nome amigável do domínio (ex: "g1.globo.com" → "G1 Globo")
+function extrairNomeFonte(url) {
+    try {
+        const hostname = new URL(url).hostname;
+        // Remove www. e pega as partes relevantes
+        const partes = hostname.replace(/^www\./, '').split('.');
+        // Pega o nome principal (penúltima parte antes do TLD)
+        const nome = partes.length >= 2 ? partes[partes.length - 2] : partes[0];
+        return nome.charAt(0).toUpperCase() + nome.slice(1);
+    } catch {
+        return "Desconhecida";
+    }
+}
+
 async function resolverUrlsOriginais(urls) {
     try {
         const resposta = await fetch("/api/resolve-url", {
@@ -47,25 +61,16 @@ async function buscarFeedRSS() {
         try {
             console.log(`Buscando RSS (tentativa ${tentativa}/${MAX_TENTATIVAS})...`);
             const resposta = await fetch(urlProvedor);
-            
-            if (!resposta.ok) {
-                throw new Error(`HTTP ${resposta.status}`);
-            }
-            
+            if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
             const data = await resposta.json();
-            if (!data || !data.items || data.items.length === 0) {
-                throw new Error("Feed vazio");
-            }
-            
-            return data; // Sucesso!
+            if (!data || !data.items || data.items.length === 0) throw new Error("Feed vazio");
+            return data;
         } catch (err) {
             console.warn(`Falha na tentativa ${tentativa}: ${err.message}`);
             if (tentativa < MAX_TENTATIVAS) {
-                const espera = tentativa * 2000; // 2s, 4s, 6s
-                console.log(`Aguardando ${espera/1000}s antes de tentar novamente...`);
-                await new Promise(r => setTimeout(r, espera));
+                await new Promise(r => setTimeout(r, tentativa * 2000));
             } else {
-                throw err; // Falhou todas as tentativas
+                throw err;
             }
         }
     }
@@ -116,9 +121,15 @@ async function atualizarNoticiasDoRSS() {
             const urlsParaResolver = noticiasNovas.map(n => n.url);
             const resultados = await resolverUrlsOriginais(urlsParaResolver);
             
+            // Atualiza URL resolvida E extrai fonte real do domínio
             resultados.forEach((resultado, indice) => {
                 if (noticiasNovas[indice]) {
                     noticiasNovas[indice].url = resultado.resolvido;
+                    
+                    // ✅ CORREÇÃO: Se a URL foi resolvida (não é mais Google), atualiza a fonte
+                    if (resultado.resolvido !== resultado.original && !resultado.resolvido.includes('news.google.com')) {
+                        noticiasNovas[indice].fonte = extrairNomeFonte(resultado.resolvido);
+                    }
                 }
             });
             
@@ -137,7 +148,7 @@ async function atualizarNoticiasDoRSS() {
         
     } catch (err) {
         console.error("Erro fatal ao buscar feed:", err);
-        alert("[ERRO DE REDE]\nNão foi possível buscar as notícias após várias tentativas.\nDetalhes: " + err.message);
+        alert("[ERRO DE REDE]\nNão foi possível buscar as notícias.\nDetalhes: " + err.message);
         return false;
     }
 }
