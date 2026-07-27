@@ -11,7 +11,7 @@ function montarPrompt(noticias) {
         return `${i}) Título: ${n.titulo}\nResumo: ${resumoCurto}`;
     }).join("\n\n");
 
-    return `Você é um analista especializado em crédito consignado no Brasil, focado exclusivamente no público de SERVIDORES PÚBLICOS (federais, estaduais e municipais), APOSENTADOS e PENSIONISTAS DO INSS.
+    return `Você é um analista especializado em crédito consignado no Brasil, focado exclusivamente no público de SERVIDORES PÚBLICOS (federais, estaduais e municipais), APOSENTADOS, PENSIONISTAS DO INSS e/ou outros pensionistas do setor público.
 
 --- REGRA DE ESCOPO OBRIGATÓRIA (FILTRO ZERO) ---
 O foco operacional é estritamente o SETOR PÚBLICO e INSS. 
