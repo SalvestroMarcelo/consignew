@@ -397,10 +397,10 @@
     </div>
 
     <div class="tabs">
-      <div class="tab active" onclick="filtrarAbas('TODAS', this)">Todas</div>
-      <div class="tab" onclick="filtrarAbas('VIAVEL', this)">✅ Viáveis</div>
-      <div class="tab" onclick="filtrarAbas('DUVIDOSA', this)">⚠️ Duvidosas</div>
-      <div class="tab" onclick="filtrarAbas('INVIAVEL', this)">❌ Inviáveis</div>
+  	   <div class="tab active" onclick="filtrarAbas('VIAVEL', this)">✅ Viáveis</div>
+       <div class="tab" onclick="filtrarAbas('DUVIDOSA', this)">⚠️ Duvidosas</div>
+       <div class="tab" onclick="filtrarAbas('INVIAVEL', this)">❌ Inviáveis</div>
+       <div class="tab" onclick="filtrarAbas('TODAS', this)">Todas</div>
     </div>
   </div>
 
@@ -436,7 +436,7 @@
 <script src="api-ia.js"></script>
 
 <script>
-let filtroAtual = 'TODAS';
+let filtroAtual = 'VIAVEL';
 
 // Inicialização automática ao carregar a página
 window.addEventListener('DOMContentLoaded', async () => {
