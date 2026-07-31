@@ -408,6 +408,9 @@
     <div class="timestamp-text" id="txt-timestamp">🕕 Aguardando primeira sincronização...</div>
     <div class="refresh-btn" onclick="dispararFluxoCompleto()">↻ Atualizar</div>
   </div>
+  <div style="padding:4px 24px; background:var(--primary-light);">
+    <small id="contador-tokens-jina" style="font-size:10px; color:var(--text-mid);"></small>
+  </div>
 
   <!-- LISTA DE NOTÍCIAS -->
   <div class="list-container">
@@ -442,6 +445,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     try {
         await initDatabase();
         console.log("Banco de dados local ativado no HTML.");
+        atualizarExibicaoContadorTokens();
         
         const noticias = await obterTodasNoticias();
         
@@ -637,6 +641,10 @@ async function gerarResumo(noticia, blocoResumo, opcoes) {
 
         const dados = await resposta.json();
 
+        if (dados.tokensJina) {
+            somarTokensJinaGastos(dados.tokensJina);
+        }
+
         if (dados.sucesso) {
             noticia.resumo = dados.resumo;
             delete noticia.erroResumo;
@@ -652,6 +660,32 @@ async function gerarResumo(noticia, blocoResumo, opcoes) {
     await salvarNoticia(noticia);
     blocoResumo.innerHTML = construirHtmlBlocoResumo(noticia);
     ligarEventosBlocoResumo(blocoResumo, noticia);
+}
+
+// Contador local (estimado) de quanto já foi gasto da cota gratuita da Jina.
+// Como a Jina não expõe um endpoint de "saldo restante", somamos localmente
+// o campo tokensJina que a nossa própria API devolve a cada chamada.
+const CHAVE_TOKENS_JINA = 'jinaTokensGastos';
+const TOTAL_TOKENS_GRATIS_JINA = 10000000;
+
+function somarTokensJinaGastos(quantidade) {
+    const atual = parseInt(localStorage.getItem(CHAVE_TOKENS_JINA) || '0', 10);
+    localStorage.setItem(CHAVE_TOKENS_JINA, String(atual + quantidade));
+    atualizarExibicaoContadorTokens();
+}
+
+function atualizarExibicaoContadorTokens() {
+    const elemento = document.getElementById('contador-tokens-jina');
+    if (!elemento) return;
+    const gastos = parseInt(localStorage.getItem(CHAVE_TOKENS_JINA) || '0', 10);
+    const restantes = Math.max(TOTAL_TOKENS_GRATIS_JINA - gastos, 0);
+    elemento.textContent = `${formatarNumeroCompacto(gastos)} tokens gastos · ≈${formatarNumeroCompacto(restantes)} restantes (estimativa)`;
+}
+
+function formatarNumeroCompacto(numero) {
+    if (numero >= 1000000) return (numero / 1000000).toFixed(1).replace('.0', '') + 'M';
+    if (numero >= 1000) return (numero / 1000).toFixed(0) + 'k';
+    return String(numero);
 }
 
 // Compartilha o resumo via app nativo do celular (WhatsApp, etc.), com
