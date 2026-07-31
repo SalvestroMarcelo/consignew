@@ -55,7 +55,7 @@ async function resolverUrlsOriginais(urls) {
 }
 
 async function buscarFeedRSS() {
-    const urlProvedor = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}&api_key=${RSS2JSON_API_KEY}&count=20`;
+    const urlProvedor = `/api/buscar-rss?rss_url=${encodeURIComponent(RSS_URL)}`;
     
     for (let tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
         try {
