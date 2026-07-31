@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -552,15 +553,58 @@ async function renderizarListaNoticias(filtroCategoria = 'TODAS') {
                 </a>
             </h3>
             <small style="color:#999;">Fonte: ${noticia.fonte} | ${new Date(noticia.dataPublicacao).toLocaleDateString()}</small>
+
+            <div class="bloco-resumo" style="margin-top:10px;">
+                <button class="btn-gerar-resumo" style="font-size:0.8em; padding:4px 10px; cursor:pointer;">📝 Gerar resumo</button>
+            </div>
         `;
+
+        const botaoResumo = card.querySelector('.btn-gerar-resumo');
+        botaoResumo.addEventListener('click', () => gerarResumo(noticia, botaoResumo));
 
         container.appendChild(card);
     });
 }
 
-// Função temporária de clique (Próxima fase ligará o scraping)
-function solicitarResumo(urlNoticia) {
-    alert(`Solicitação capturada!\nNa próxima fase faremos o scraping e resumo automático do link:\n\n${urlNoticia}`);
+// Chama a API que extrai o artigo (Jina Reader) e pede o resumo à IA.
+// Por enquanto só cobre o estado inicial (gerar pela 1ª vez); os estados de
+// erro/regenerar/compartilhar entram nos próximos módulos.
+async function gerarResumo(noticia, botao) {
+    // Checagem prévia: se o link ainda for do Google (não resolvido), nem tenta
+    if (noticia.url.includes('news.google.com')) {
+        alert('Essa notícia ainda não teve o link original identificado. Atualize a lista de notícias e tente de novo.');
+        return;
+    }
+
+    botao.disabled = true;
+    botao.textContent = 'Gerando resumo...';
+
+    try {
+        const resposta = await fetch('/api/resumir-noticia', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: noticia.url, titulo: noticia.titulo })
+        });
+
+        const dados = await resposta.json();
+
+        if (!dados.sucesso) {
+            alert(`${dados.mensagemSimples} (${dados.erroTecnico})`);
+            botao.disabled = false;
+            botao.textContent = '📝 Gerar resumo';
+            return;
+        }
+
+        noticia.resumo = dados.resumo;
+        await salvarNoticia(noticia);
+
+        const blocoResumo = botao.closest('.bloco-resumo');
+        blocoResumo.innerHTML = `<p style="font-size:0.9em; color:#333; background:#f7f7f7; padding:8px; border-radius:6px;">${noticia.resumo}</p>`;
+    } catch (erro) {
+        alert(`Não foi possível conectar ao serviço de resumo. (${erro.message})`);
+        botao.disabled = false;
+        botao.textContent = '📝 Gerar resumo';
+    }
 }
 </script>
 </body>
