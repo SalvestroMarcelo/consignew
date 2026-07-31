@@ -107,7 +107,7 @@ export default async function handler(req, res) {
 
         const tokensJina = jsonJina?.data?.usage?.tokens ?? jsonJina?.usage?.tokens ?? 0;
         const aviso = jsonJina?.data?.warning || jsonJina?.warning;
-        let textoArtigo = jsonJina?.data?.content || "";
+        let textoArtigo = jsonJina?.data?.text || jsonJina?.data?.content || "";
 
         if (aviso) {
             return res.status(422).json({
