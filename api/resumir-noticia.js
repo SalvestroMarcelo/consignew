@@ -10,7 +10,7 @@
 
 const LIMITE_CARACTERES_ALVO = 3000;   // alvo do corte (Pirâmide Invertida)
 const MARGEM_PARA_TERMINAR_FRASE = 400; // quanto além do alvo podemos ir pra fechar a ideia
-const MAX_TOKENS_RESUMO = 600;          // teto de segurança "Equilibrado"
+const MAX_TOKENS_RESUMO = 220;          // teto de segurança "Equilibrado"
 
 function mapearErroJina(status, corpoTexto) {
     const tecnico = `HTTP ${status} em r.jina.ai — resposta: ${corpoTexto || "(sem corpo)"}`;
@@ -130,7 +130,7 @@ export default async function handler(req, res) {
         textoArtigo = cortarRespeitandoContexto(textoArtigo.trim(), LIMITE_CARACTERES_ALVO, MARGEM_PARA_TERMINAR_FRASE);
 
         // Etapa 2: pedir o resumo para a IA (mesmo provedor da classificação)
-        const prompt = `Resuma a notícia abaixo em português, de forma objetiva e completa. É mais importante incluir todos os fatos relevantes (valores, prazos, datas, quem é afetado, o que muda na prática) do que ser breve — não corte informação importante só para economizar espaço. Elimine apenas repetições e enrolação. Não invente informações que não estão no texto.
+        const prompt = `Resuma a notícia abaixo em português, em no máximo 2-3 frases curtas e diretas — o suficiente para alguém decidir rapidamente se vale a pena ler a notícia completa. Inclua só o essencial (o que mudou, quem é afetado, e valor/prazo somente se for o ponto central da notícia). Corte tudo que for contexto secundário. Não invente informações que não estão no texto.
 
 Título: ${titulo || ""}
 
