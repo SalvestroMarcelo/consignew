@@ -284,6 +284,7 @@
 .noticia-vista .titulo-noticia {
     font-weight: 400;
 }
+
 /* Resumo recolhido: mostra só 1 linha até o usuário clicar em "Expandir" */
 .texto-resumo.recolhido {
     display: -webkit-box;
@@ -291,6 +292,7 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
+
   /* RELEVÂNCIA */
   .card-relevance {
     padding: 0 14px 10px;
@@ -435,15 +437,18 @@
     <div class="list" id="lista-noticias-dinamica">
       <!-- O Javascript vai injetar os cartões reais aqui -->
     </div>
+    <div class="list" id="lista-materiais-dinamica" style="display:none;">
+      <!-- Cards de resumos enviados para Materiais -->
+    </div>
   </div>
 
   <!-- BOTTOM NAV -->
   <div class="bottom-nav">
-    <div class="nav-item active">
+    <div class="nav-item active" onclick="mostrarSecao('noticias', this)">
       <span class="nav-label">Notícias</span>
       <div class="nav-dot"></div>
     </div>
-    <div class="nav-item"><span class="nav-label">Materiais</span></div>
+    <div class="nav-item" onclick="mostrarSecao('materiais', this)"><span class="nav-label">Materiais</span></div>
     <div class="nav-item"><span class="nav-label">Histórico</span></div>
     <div class="nav-item"><span class="nav-label">Config.</span></div>
   </div>
@@ -583,29 +588,65 @@ async function renderizarListaNoticias(filtroCategoria = 'TODAS') {
             </h3>
             <small style="color:#999;">Fonte: ${noticia.fonte} | ${new Date(noticia.dataPublicacao).toLocaleDateString()}</small>
 
-            <div class="bloco-resumo" style="margin-top:10px;">${construirHtmlBlocoResumo(noticia)}</div>
+            <div class="bloco-envio" style="margin-top:10px;">${construirHtmlBlocoEnvio(noticia)}</div>
         `;
 
-        ligarEventosBlocoResumo(card.querySelector('.bloco-resumo'), noticia);
+        ligarEventosBlocoEnvio(card.querySelector('.bloco-envio'), noticia);
 
         container.appendChild(card);
     });
 }
+
+// Bloco de ENVIO (aparece no card de notícia, aba Notícias):
+// 1) nunca tentou -> botão "Enviar resumo para os Materiais"
+// 2) sucesso -> só a confirmação "Enviado para Materiais" (o resumo em si mora na aba Materiais)
+// 3) erro -> mensagem de erro + "Tentar gerar novamente" (o envio não chegou a acontecer)
+function construirHtmlBlocoEnvio(noticia) {
+    if (noticia.resumo) {
+        return `<p style="font-size:0.8em; color:var(--primary-dark);">✅ Enviado para Materiais</p>`;
+    }
+    if (noticia.erroResumo) {
+        return `
+            <p style="font-size:0.85em; color:#a33; background:#fdf0f0; padding:8px; border-radius:6px;">
+                ${noticia.erroResumo.mensagemSimples} <span style="color:#999;">(${noticia.erroResumo.erroTecnico})</span>
+            </p>
+            <button class="btn-tentar-novamente" style="font-size:0.75em; padding:3px 8px; cursor:pointer;">🔄 Tentar gerar novamente</button>
+        `;
+    }
+    return `<button class="btn-enviar-resumo" style="font-size:0.8em; padding:4px 10px; cursor:pointer;">📤 Enviar resumo para os Materiais</button>`;
+}
+
+function ligarEventosBlocoEnvio(blocoEnvio, noticia) {
+    const aoAtualizar = (bloco, n) => {
+        bloco.innerHTML = construirHtmlBlocoEnvio(n);
+        ligarEventosBlocoEnvio(bloco, n);
+    };
+
+    const btnEnviar = blocoEnvio.querySelector('.btn-enviar-resumo');
+    if (btnEnviar) btnEnviar.addEventListener('click', () =>
+        gerarResumo(noticia, blocoEnvio, { confirmar: false, textoCarregando: 'Enviando...', aoAtualizar }));
+
+    const btnTentar = blocoEnvio.querySelector('.btn-tentar-novamente');
+    if (btnTentar) btnTentar.addEventListener('click', () =>
+        gerarResumo(noticia, blocoEnvio, { confirmar: false, textoCarregando: 'Tentando novamente...', aoAtualizar }));
+}
+
+// Monta o HTML do bloco de resumo conforme o estado da notícia:
+// 1) nunca tentou -> botão "Gerar resumo"
+// 2) sucesso -> texto do resumo + "Gerar novamente" + "Compartilhar"
+// 3) erro -> mensagem de erro + "Tentar gerar novamente" (sem Compartilhar)
 // Alterna entre mostrar 1 linha (recolhido) ou o resumo inteiro (expandido)
 function alternarResumoRecolhido(botao) {
     const paragrafo = botao.previousElementSibling;
     const agoraRecolhido = paragrafo.classList.toggle('recolhido');
     botao.textContent = agoraRecolhido ? '🔽 Expandir' : '🔼 Retrair';
 }
-// Monta o HTML do bloco de resumo conforme o estado da notícia:
-// 1) nunca tentou -> botão "Gerar resumo"
-// 2) sucesso -> texto do resumo + "Gerar novamente" + "Compartilhar"
-// 3) erro -> mensagem de erro + "Tentar gerar novamente" (sem Compartilhar)
+
 function construirHtmlBlocoResumo(noticia) {
     if (noticia.resumo) {
         return `
             <p class="texto-resumo recolhido" style="font-size:0.9em; color:#333; background:#f7f7f7; padding:8px; border-radius:6px; margin-bottom:4px;">${noticia.resumo}</p>
-				<button onclick="alternarResumoRecolhido(this)" style="font-size:0.7em; padding:2px 6px; cursor:pointer; background:none; border:1px solid #ccc; border-radius:4px; margin-bottom:6px;">🔽 Expandir</button>
+            <button onclick="alternarResumoRecolhido(this)" style="font-size:0.7em; padding:2px 6px; cursor:pointer; background:none; border:1px solid #ccc; border-radius:4px; margin-bottom:6px;">🔽 Expandir</button>
             <div style="margin-top:6px; display:flex; gap:8px;">
                 <button class="btn-gerar-novamente" style="font-size:0.75em; padding:3px 8px; cursor:pointer;">🔄 Gerar novamente</button>
                 <button class="btn-compartilhar" style="font-size:0.75em; padding:3px 8px; cursor:pointer;">📤 Compartilhar</button>
@@ -623,22 +664,62 @@ function construirHtmlBlocoResumo(noticia) {
     return `<button class="btn-gerar-resumo" style="font-size:0.8em; padding:4px 10px; cursor:pointer;">📝 Gerar resumo</button>`;
 }
 
-// Liga os cliques dos botões existentes dentro de um bloco-resumo específico
+// Liga os cliques dos botões existentes dentro de um bloco-resumo específico (usado na aba Materiais)
 function ligarEventosBlocoResumo(blocoResumo, noticia) {
-    const btnGerar = blocoResumo.querySelector('.btn-gerar-resumo');
-    if (btnGerar) btnGerar.addEventListener('click', () =>
-        gerarResumo(noticia, blocoResumo, { confirmar: false, textoCarregando: 'Gerando resumo...' }));
+    const aoAtualizar = (bloco, n) => {
+        bloco.innerHTML = construirHtmlBlocoResumo(n);
+        ligarEventosBlocoResumo(bloco, n);
+    };
 
     const btnNovamente = blocoResumo.querySelector('.btn-gerar-novamente');
     if (btnNovamente) btnNovamente.addEventListener('click', () =>
-        gerarResumo(noticia, blocoResumo, { confirmar: true, textoCarregando: 'Gerando resumo...' }));
-
-    const btnTentar = blocoResumo.querySelector('.btn-tentar-novamente');
-    if (btnTentar) btnTentar.addEventListener('click', () =>
-        gerarResumo(noticia, blocoResumo, { confirmar: false, textoCarregando: 'Tentando novamente...' }));
+        gerarResumo(noticia, blocoResumo, { confirmar: true, textoCarregando: 'Gerando resumo...', aoAtualizar }));
 
     const btnCompartilhar = blocoResumo.querySelector('.btn-compartilhar');
     if (btnCompartilhar) btnCompartilhar.addEventListener('click', () => compartilharResumo(noticia));
+}
+
+// Renderiza a aba Materiais: um card por notícia que já tem resumo gerado
+async function renderizarMateriais() {
+    const container = document.getElementById('lista-materiais-dinamica');
+    if (!container) return;
+
+    const noticias = await obterTodasNoticias();
+    const comResumo = noticias.filter(n => n.resumo);
+    comResumo.sort((a, b) => b.dataPublicacao - a.dataPublicacao);
+
+    container.innerHTML = '';
+
+    if (comResumo.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#666;">Nenhum material gerado ainda. Envie um resumo a partir da aba Notícias.</p>';
+        return;
+    }
+
+    comResumo.forEach(noticia => {
+        const card = document.createElement('div');
+        card.style.cssText = "border:1px solid #ddd; padding:15px; margin-bottom:10px; border-radius:8px; background:#fff;";
+        card.innerHTML = `
+            <h3 style="margin:0 0 5px;">
+                <a href="${noticia.url}" target="_blank" style="text-decoration:none; color:#0056b3;">${noticia.titulo}</a>
+            </h3>
+            <div class="bloco-resumo">${construirHtmlBlocoResumo(noticia)}</div>
+        `;
+        ligarEventosBlocoResumo(card.querySelector('.bloco-resumo'), noticia);
+        container.appendChild(card);
+    });
+}
+
+// Alterna entre a aba Notícias e a aba Materiais no rodapé
+function mostrarSecao(secao, elementoNav) {
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    elementoNav.classList.add('active');
+
+    document.getElementById('lista-noticias-dinamica').style.display = secao === 'noticias' ? 'flex' : 'none';
+    document.getElementById('lista-materiais-dinamica').style.display = secao === 'materiais' ? 'flex' : 'none';
+
+    if (secao === 'materiais') {
+        renderizarMateriais();
+    }
 }
 
 // Chama a API que extrai o artigo (Jina Reader) e pede o resumo à IA
@@ -656,8 +737,7 @@ async function gerarResumo(noticia, blocoResumo, opcoes) {
         };
         delete noticia.resumo;
         await salvarNoticia(noticia);
-        blocoResumo.innerHTML = construirHtmlBlocoResumo(noticia);
-        ligarEventosBlocoResumo(blocoResumo, noticia);
+        opcoes.aoAtualizar(blocoResumo, noticia);
         return;
     }
 
@@ -691,8 +771,7 @@ async function gerarResumo(noticia, blocoResumo, opcoes) {
     }
 
     await salvarNoticia(noticia);
-    blocoResumo.innerHTML = construirHtmlBlocoResumo(noticia);
-    ligarEventosBlocoResumo(blocoResumo, noticia);
+    opcoes.aoAtualizar(blocoResumo, noticia);
 }
 
 // Contador local (estimado) de quanto já foi gasto da cota gratuita da Jina.
