@@ -266,15 +266,23 @@
   }
 	/* Estado das notícias */
 .noticia-item {
-    transition: opacity 0.3s ease;
+    transition: background 0.2s ease;
 }
 
+/* Nunca vista: título em negrito, fundo levemente destacado */
+.noticia-nova {
+    background: #ffffff;
+}
+.noticia-nova .titulo-noticia {
+    font-weight: 700;
+}
+
+/* Já vista (clicada): título em peso normal, fundo neutro — sem perder legibilidade */
 .noticia-vista {
-    opacity: 0.5; /* 50% - já vista, mas não clicada */
+    background: #f6f8f7;
 }
-
-.noticia-clicada {
-    opacity: 0.3; /* 10% - já foi acessada */
+.noticia-vista .titulo-noticia {
+    font-weight: 400;
 }
 
   /* RELEVÂNCIA */
@@ -408,8 +416,12 @@
     <div class="timestamp-text" id="txt-timestamp">🕕 Aguardando primeira sincronização...</div>
     <div class="refresh-btn" onclick="dispararFluxoCompleto()">↻ Atualizar</div>
   </div>
-  <div style="padding:4px 24px; background:var(--primary-light);">
+  <div style="padding:4px 24px; background:var(--primary-light); display:flex; justify-content:space-between; align-items:center;">
     <small id="contador-tokens-jina" style="font-size:10px; color:var(--text-mid);"></small>
+    <label style="font-size:10px; color:var(--text-mid); display:flex; align-items:center; gap:4px; cursor:pointer;">
+      <input type="checkbox" id="toggle-mostrar-vistas" onchange="alternarMostrarVistas(this.checked)" style="cursor:pointer;">
+      Mostrar já vistas
+    </label>
   </div>
 
   <!-- LISTA DE NOTÍCIAS -->
@@ -439,6 +451,7 @@
 
 <script>
 let filtroAtual = 'VIAVEL';
+let mostrarJaVistas = false;
 
 // Inicialização automática ao carregar a página
 window.addEventListener('DOMContentLoaded', async () => {
@@ -490,7 +503,13 @@ async function dispararFluxoCompleto() {
         // Redesenha a tela com as cores atualizadas pela IA, mantendo a aba selecionada
         await renderizarListaNoticias(filtroAtual);
     }
-}// Controla a filtragem das abas superiores
+}// Liga/desliga a exibição das notícias já vistas/clicadas
+async function alternarMostrarVistas(ligado) {
+    mostrarJaVistas = ligado;
+    await renderizarListaNoticias(filtroAtual);
+}
+
+// Controla a filtragem das abas superiores
 async function filtrarAbas(categoria, elementoTab) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     elementoTab.classList.add('active');
@@ -505,9 +524,14 @@ async function renderizarListaNoticias(filtroCategoria = 'TODAS') {
     const noticias = await obterTodasNoticias();
     
     // Filtra por categoria se necessário
-    const noticiasFiltradas = filtroCategoria === 'TODAS' 
+    const noticiasPorCategoria = filtroCategoria === 'TODAS' 
         ? noticias 
         : noticias.filter(n => n.categoria === filtroCategoria);
+
+    // Esconde as já vistas/clicadas por padrão, a menos que o toggle esteja ligado
+    const noticiasFiltradas = mostrarJaVistas
+        ? noticiasPorCategoria
+        : noticiasPorCategoria.filter(n => !foiClicada(n.url));
 
     // Ordena por relevância (maior primeiro) e depois por data
     noticiasFiltradas.sort((a, b) => b.dataPublicacao - a.dataPublicacao);
@@ -521,18 +545,14 @@ async function renderizarListaNoticias(filtroCategoria = 'TODAS') {
 
     noticiasFiltradas.forEach(noticia => {
         const jaFoiClicada = foiClicada(noticia.url);
-        
-        // Lógica de Opacidade:
-        // Clicada = 10% | Vista (existe no banco) = 50% | Nova = 100%
-        // Como todas vêm do banco, se não foi clicada, é considerada "vista" (50%)
-        let classeEstado = 'noticia-vista'; 
-        if (jaFoiClicada) {
-            classeEstado = 'noticia-clicada';
-        }
+
+        // Estado visual: nunca vista = título em negrito; já vista = peso normal.
+        // Nunca reduzimos a opacidade do texto, pra manter a legibilidade.
+        const classeEstado = jaFoiClicada ? 'noticia-vista' : 'noticia-nova';
 
         const card = document.createElement('div');
         card.className = `noticia-item ${classeEstado}`;
-        card.style.cssText = "border:1px solid #ddd; padding:15px; margin-bottom:10px; border-radius:8px; background:#fff;";
+        card.style.cssText = "border:1px solid #ddd; padding:15px; margin-bottom:10px; border-radius:8px;";
 
         // Badge de categoria
         let badgeColor = '#ccc';
@@ -549,8 +569,9 @@ async function renderizarListaNoticias(filtroCategoria = 'TODAS') {
             <h3 style="margin:10px 0 5px;">
                 <a href="${noticia.url}" 
                    target="_blank" 
+                   class="titulo-noticia"
                    style="text-decoration:none; color:#0056b3;"
-                   onclick="marcarComoClicada('${noticia.url.replace(/'/g, "\\'")}'); this.closest('.noticia-item').classList.remove('noticia-vista'); this.closest('.noticia-item').classList.add('noticia-clicada');">
+                   onclick="marcarComoClicada('${noticia.url.replace(/'/g, "\\'")}'); this.closest('.noticia-item').classList.remove('noticia-nova'); this.closest('.noticia-item').classList.add('noticia-vista');">
                     ${noticia.titulo}
                 </a>
             </h3>
