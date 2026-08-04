@@ -47,11 +47,13 @@ export default async function handler(req, res) {
             return res.status(400).json({ status: "error", message: "Parâmetro 'rss_url' não informado" });
         }
 
-        const resposta = await fetch(rss_url, {
-            headers: {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-            }
-        });
+    const resposta = await fetch(rss_url, {
+        headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Accept-Language": "pt-BR,pt;q=0.9",
+            "Referer": "https://news.google.com/"
+        }
+    });
 
         if (!resposta.ok) {
             return res.status(502).json({
