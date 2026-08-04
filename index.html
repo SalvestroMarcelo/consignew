@@ -284,7 +284,13 @@
 .noticia-vista .titulo-noticia {
     font-weight: 400;
 }
-
+/* Resumo recolhido: mostra só 1 linha até o usuário clicar em "Expandir" */
+.texto-resumo.recolhido {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
   /* RELEVÂNCIA */
   .card-relevance {
     padding: 0 14px 10px;
@@ -585,7 +591,12 @@ async function renderizarListaNoticias(filtroCategoria = 'TODAS') {
         container.appendChild(card);
     });
 }
-
+// Alterna entre mostrar 1 linha (recolhido) ou o resumo inteiro (expandido)
+function alternarResumoRecolhido(botao) {
+    const paragrafo = botao.previousElementSibling;
+    const agoraRecolhido = paragrafo.classList.toggle('recolhido');
+    botao.textContent = agoraRecolhido ? '🔽 Expandir' : '🔼 Retrair';
+}
 // Monta o HTML do bloco de resumo conforme o estado da notícia:
 // 1) nunca tentou -> botão "Gerar resumo"
 // 2) sucesso -> texto do resumo + "Gerar novamente" + "Compartilhar"
@@ -593,7 +604,8 @@ async function renderizarListaNoticias(filtroCategoria = 'TODAS') {
 function construirHtmlBlocoResumo(noticia) {
     if (noticia.resumo) {
         return `
-            <p class="texto-resumo" style="font-size:0.9em; color:#333; background:#f7f7f7; padding:8px; border-radius:6px;">${noticia.resumo}</p>
+            <p class="texto-resumo recolhido" style="font-size:0.9em; color:#333; background:#f7f7f7; padding:8px; border-radius:6px; margin-bottom:4px;">${noticia.resumo}</p>
+				<button onclick="alternarResumoRecolhido(this)" style="font-size:0.7em; padding:2px 6px; cursor:pointer; background:none; border:1px solid #ccc; border-radius:4px; margin-bottom:6px;">🔽 Expandir</button>
             <div style="margin-top:6px; display:flex; gap:8px;">
                 <button class="btn-gerar-novamente" style="font-size:0.75em; padding:3px 8px; cursor:pointer;">🔄 Gerar novamente</button>
                 <button class="btn-compartilhar" style="font-size:0.75em; padding:3px 8px; cursor:pointer;">📤 Compartilhar</button>
