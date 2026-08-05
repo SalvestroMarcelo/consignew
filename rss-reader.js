@@ -24,8 +24,33 @@ function similaridadeTitulos(a, b) {
 
 const LIMITE_SIMILARIDADE = 0.6;
 
+// ============================================================
+// LISTA DE OVERRIDES: nomes fixos para sites específicos.
+// Pode editar/adicionar linhas aqui livremente (chave = hostname sem "www.",
+// valor = nome que deve aparecer como Fonte). Não precisa mexer em mais nada.
+// ============================================================
+const OVERRIDES_FONTE = {
+    'g1.globo.com': 'G1 Globo',
+    'camara.leg.br': 'Câmara dos Deputados',
+    'jornaldocomercio.com': 'Jornal do Comércio'
+};
+
+// ============================================================
+// LISTA DE SIGLAS CONHECIDAS: nomes que devem aparecer em CAIXA ALTA
+// em vez de só a primeira letra maiúscula (ex: "usp" -> "USP", não "Usp").
+// Pode adicionar novas siglas aqui livremente, uma por item, em minúsculas.
+// ============================================================
+const ESTADOS_BR = ['ac','al','ap','am','ba','ce','df','es','go','ma','mt','ms',
+    'mg','pa','pb','pr','pe','pi','rj','rn','rs','ro','rr','sc','sp','se','to'];
+
+const SIGLAS_CONHECIDAS = [
+    ...ESTADOS_BR,
+    ...ESTADOS_BR.map(uf => `tj${uf}`), // gera tjsp, tjrj, tjma, etc. automaticamente
+    'usp', 'stf', 'stj', 'tst', 'tcu', 'cnj', 'mpf', 'mpu', 'inss'
+];
+
 // Sufixos de domínio de 2 partes comuns no Brasil (e alguns internacionais).
-// Sem essa lista, "amazonas1.com.br" vira "Com" (pega sempre a penúltima parte).
+// Sem essa lista, "amazonas1.com.br" viraria "Com" (pega sempre a penúltima parte).
 const SUFIXOS_DOMINIO_DUAS_PARTES = [
     'com.br', 'org.br', 'gov.br', 'net.br', 'jus.br', 'adv.br',
     'edu.br', 'mil.br', 'blog.br', 'info.br', 'ind.br',
@@ -36,14 +61,31 @@ const SUFIXOS_DOMINIO_DUAS_PARTES = [
 function extrairNomeFonte(url) {
     try {
         const hostname = new URL(url).hostname.replace(/^www\./, '');
+
+        // 1) Override exato tem prioridade sobre qualquer outra regra
+        if (OVERRIDES_FONTE[hostname]) return OVERRIDES_FONTE[hostname];
+
         const partes = hostname.split('.');
 
+        // 2) Regra especial UOL: qualquer subdomínio.uol.com.br -> "{Subdomínio} UOL"
+        const indiceUol = partes.indexOf('uol');
+        if (indiceUol > 0) {
+            const antesDoUol = partes[indiceUol - 1];
+            return `${antesDoUol.charAt(0).toUpperCase()}${antesDoUol.slice(1)} UOL`;
+        }
+
+        // 3) Extração normal, já considerando sufixos de 2 partes (.com.br, .jus.br etc.)
         const terminaEmSufixoDuasPartes = partes.length >= 3
             && SUFIXOS_DOMINIO_DUAS_PARTES.includes(partes.slice(-2).join('.'));
 
         const nome = terminaEmSufixoDuasPartes
             ? partes[partes.length - 3]
             : (partes.length >= 2 ? partes[partes.length - 2] : partes[0]);
+
+        // 4) Se for uma sigla conhecida, devolve em CAIXA ALTA
+        if (SIGLAS_CONHECIDAS.includes(nome.toLowerCase())) {
+            return nome.toUpperCase();
+        }
 
         return nome.charAt(0).toUpperCase() + nome.slice(1);
     } catch {
@@ -68,7 +110,7 @@ async function resolverUrlsOriginais(urls) {
 }
 
 async function buscarFeedRSS() {
-    const urlProvedor = `/api/buscar-rss?rss_url=${encodeURIComponent(RSS_URL)}`;
+    const urlProvedor = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_URL)}&api_key=${RSS2JSON_API_KEY}&count=20`;
     
     for (let tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
         try {
