@@ -24,14 +24,27 @@ function similaridadeTitulos(a, b) {
 
 const LIMITE_SIMILARIDADE = 0.6;
 
-// Extrai nome amigável do domínio (ex: "g1.globo.com" → "G1 Globo")
+// Sufixos de domínio de 2 partes comuns no Brasil (e alguns internacionais).
+// Sem essa lista, "amazonas1.com.br" vira "Com" (pega sempre a penúltima parte).
+const SUFIXOS_DOMINIO_DUAS_PARTES = [
+    'com.br', 'org.br', 'gov.br', 'net.br', 'jus.br', 'adv.br',
+    'edu.br', 'mil.br', 'blog.br', 'info.br', 'ind.br',
+    'co.uk', 'com.au', 'co.jp'
+];
+
+// Extrai nome amigável do domínio (ex: "amazonas1.com.br" → "Amazonas1")
 function extrairNomeFonte(url) {
     try {
-        const hostname = new URL(url).hostname;
-        // Remove www. e pega as partes relevantes
-        const partes = hostname.replace(/^www\./, '').split('.');
-        // Pega o nome principal (penúltima parte antes do TLD)
-        const nome = partes.length >= 2 ? partes[partes.length - 2] : partes[0];
+        const hostname = new URL(url).hostname.replace(/^www\./, '');
+        const partes = hostname.split('.');
+
+        const terminaEmSufixoDuasPartes = partes.length >= 3
+            && SUFIXOS_DOMINIO_DUAS_PARTES.includes(partes.slice(-2).join('.'));
+
+        const nome = terminaEmSufixoDuasPartes
+            ? partes[partes.length - 3]
+            : (partes.length >= 2 ? partes[partes.length - 2] : partes[0]);
+
         return nome.charAt(0).toUpperCase() + nome.slice(1);
     } catch {
         return "Desconhecida";
